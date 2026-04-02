@@ -24,8 +24,10 @@ Read only:
 
 1. `docs/harness/executor-start.md`
 2. confirm the task is unlocked in `docs/tasks/dependency-graph.md`
-3. the assigned task card in `docs/tasks/`
-4. any file explicitly referenced by that task card
+3. check `docs/tasks/status-board.md`
+4. the assigned task card in `docs/tasks/`
+5. `docs/harness/submission-template.md` when submitting work
+6. any file explicitly referenced by that task card
 
 Do not read the full docs tree unless the task card tells you to.
 Do not edit planner/validator-owned docs.
@@ -36,10 +38,12 @@ Read only:
 
 1. `docs/harness/validator-start.md`
 2. `docs/tasks/dependency-graph.md`
-3. the assigned task card in `docs/tasks/`
-4. `docs/validation/protocol.md`
-5. `docs/validation/task-checklist.md`
-6. `docs/validation/performance-red-lines.md` for gameplay/runtime tasks
+3. `docs/tasks/status-board.md`
+4. the assigned task card in `docs/tasks/`
+5. `docs/validation/protocol.md`
+6. `docs/validation/task-checklist.md`
+7. `docs/validation/performance-red-lines.md` for gameplay/runtime tasks
+8. `docs/harness/review-template.md` when reviewing work
 
 ## Design Principle
 

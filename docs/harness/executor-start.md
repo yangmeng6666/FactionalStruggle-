@@ -4,15 +4,16 @@ Read this first. Then stop.
 
 ## Your job
 
-Implement exactly one assigned task.
+Implement exactly one assigned task and keep the status board current.
 
 ## What to read next
 
 Read only:
 
 1. confirm your task is unlocked in `docs/tasks/dependency-graph.md`
-2. your assigned task card in `docs/tasks/`
-3. any files explicitly listed in that task card under "Read before implementing"
+2. check `docs/tasks/status-board.md`
+3. your assigned task card in `docs/tasks/`
+4. any files explicitly listed in that task card under "Read before implementing"
 
 Do not browse the whole docs tree by default.
 
@@ -33,6 +34,8 @@ Your submission must include:
 1. a git commit
 2. runtime evidence
 3. a short summary of what changed
+4. a filled submission using `docs/harness/submission-template.md`
+5. a status board update in `docs/tasks/status-board.md`
 
 ## Required runtime evidence
 

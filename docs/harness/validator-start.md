@@ -4,15 +4,17 @@ Read this first. Then read only the task card and validation protocol.
 
 ## Your job
 
-Determine whether the assigned executor submission passes.
+Determine whether the assigned executor submission passes and update the status board accordingly.
 
 ## Read next
 
 1. `docs/tasks/dependency-graph.md`
-2. assigned task card in `docs/tasks/`
-3. `docs/validation/protocol.md`
-4. `docs/validation/task-checklist.md`
-5. `docs/validation/performance-red-lines.md` for gameplay/runtime tasks
+2. `docs/tasks/status-board.md`
+3. assigned task card in `docs/tasks/`
+4. `docs/validation/protocol.md`
+5. `docs/validation/task-checklist.md`
+6. `docs/validation/performance-red-lines.md` for gameplay/runtime tasks
+7. `docs/harness/review-template.md`
 
 ## Core principle
 

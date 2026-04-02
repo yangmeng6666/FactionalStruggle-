@@ -3,9 +3,10 @@
 Read only the task card you are assigned.
 Check task lock/unlock status via `docs/tasks/dependency-graph.md`.
 
-## Dependency graph
+## Coordination
 
 - `docs/tasks/dependency-graph.md`
+- `docs/tasks/status-board.md`
 
 ## Task Cards
 
