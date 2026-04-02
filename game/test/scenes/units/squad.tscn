@@ -1,0 +1,131 @@
+[gd_scene format=3 uid="uid://dvges2uowu75j"]
+
+[ext_resource type="Script" uid="uid://dnesirru2c880" path="res://scripts/units/squad.gd" id="1_y7r9v"]
+[ext_resource type="Texture2D" uid="uid://gricatqxrott" path="res://assets/units/swordsman/Swordsman_lvl1_Idle_with_shadow.png" id="2_vqxf3"]
+[ext_resource type="Texture2D" uid="uid://cufwyvxnufs0x" path="res://assets/units/swordsman/Swordsman_lvl1_Walk_with_shadow.png" id="3_esly6"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ctq1m"]
+radius = 8.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_fv1pj"]
+radius = 50.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_cjpso"]
+radius = 12.0
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_esly6"]
+atlas = ExtResource("2_vqxf3")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bqrub"]
+atlas = ExtResource("2_vqxf3")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sa8vl"]
+atlas = ExtResource("2_vqxf3")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4i82q"]
+atlas = ExtResource("2_vqxf3")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_y3y33"]
+atlas = ExtResource("2_vqxf3")
+region = Rect2(256, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e6cq5"]
+atlas = ExtResource("3_esly6")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pwfcr"]
+atlas = ExtResource("3_esly6")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3slna"]
+atlas = ExtResource("3_esly6")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ktogp"]
+atlas = ExtResource("3_esly6")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x4lnk"]
+atlas = ExtResource("3_esly6")
+region = Rect2(256, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_q57so"]
+atlas = ExtResource("3_esly6")
+region = Rect2(320, 0, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_0fpbq"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_esly6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bqrub")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sa8vl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4i82q")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_y3y33")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_e6cq5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pwfcr")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3slna")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ktogp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_x4lnk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_q57so")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 8.0
+}]
+
+[node name="Squad" type="CharacterBody2D" unique_id=1230120265]
+script = ExtResource("1_y7r9v")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1095959912]
+shape = SubResource("CircleShape2D_ctq1m")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="." unique_id=1776716548]
+
+[node name="AttackRange" type="Area2D" parent="." unique_id=126107222]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackRange" unique_id=736726247]
+shape = SubResource("CircleShape2D_fv1pj")
+
+[node name="SelectionArea" type="Area2D" parent="." unique_id=860432247]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SelectionArea" unique_id=348824701]
+shape = SubResource("CircleShape2D_cjpso")
+
+[node name="HpBarAnchor" type="Marker2D" parent="." unique_id=354400716]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=621465373]
+texture_filter = 1
+sprite_frames = SubResource("SpriteFrames_0fpbq")
+animation = &"walk"
+frame = 3
+frame_progress = 0.18048155

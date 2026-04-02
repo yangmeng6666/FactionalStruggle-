@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://db3x6hhv5s5yi"]
+
+[ext_resource type="PackedScene" uid="uid://d03pv3t3rpglo" path="res://scenes/battle_root.tscn" id="1_o5qli"]
+[ext_resource type="Script" path="res://scripts/core/game_session.gd" id="2_8y2q4"]
+[ext_resource type="Script" path="res://scripts/ui/selection_overlay.gd" id="3_8f6k1"]
+[ext_resource type="Script" path="res://scripts/ui/day_hud.gd" id="4_o7m9c"]
+
+[node name="Node" type="Node" unique_id=1767838926]
+
+[node name="GameSession" type="Node" parent="." unique_id=108056514]
+script = ExtResource("2_8y2q4")
+
+[node name="BattleRoot" parent="." unique_id=1107046231 instance=ExtResource("1_o5qli")]
+
+[node name="UIRoot" type="CanvasLayer" parent="." unique_id=168573157]
+
+[node name="SelectionOverlay" type="Control" parent="UIRoot" unique_id=1081031637]
+script = ExtResource("3_8f6k1")
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="DayHUD" type="Control" parent="UIRoot" unique_id=799008749]
+script = ExtResource("4_o7m9c")
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0

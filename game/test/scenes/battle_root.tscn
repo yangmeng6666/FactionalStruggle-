@@ -1,0 +1,47 @@
+[gd_scene format=3 uid="uid://d03pv3t3rpglo"]
+
+[ext_resource type="PackedScene" uid="uid://dvges2uowu75j" path="res://scenes/units/squad.tscn" id="1_hmxj8"]
+[ext_resource type="Script" path="res://scripts/battle/battle_root.gd" id="2_y0r5b"]
+[ext_resource type="Script" path="res://scripts/battle/camera_controller.gd" id="3_j1n7a"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_7dm0k"]
+vertices = PackedVector2Array(569.96094, -310, 568.03125, 313, -564.97656, 313, -564.0078, -310.9922)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+outlines = Array[PackedVector2Array]([PackedVector2Array(-574, -321, -575, 323, 578, 323, 580, -320)])
+
+[node name="BattleRoot" type="Node2D" unique_id=1107046231]
+script = ExtResource("2_y0r5b")
+
+[node name="MapRoot" type="Node2D" parent="." unique_id=287958443]
+
+[node name="GroundLayer" type="TileMapLayer" parent="MapRoot" unique_id=1127791390]
+
+[node name="ObstacleLayer" type="TileMapLayer" parent="MapRoot" unique_id=179811251]
+
+[node name="DecoLayer" type="TileMapLayer" parent="MapRoot" unique_id=1942692313]
+
+[node name="Navigation" type="NavigationRegion2D" parent="." unique_id=1233542160]
+navigation_polygon = SubResource("NavigationPolygon_7dm0k")
+
+[node name="CapturePoints" type="Node2D" parent="." unique_id=1802534850]
+
+[node name="Units" type="Node2D" parent="." unique_id=2095826054]
+
+[node name="PlayerUnits" type="Node2D" parent="Units" unique_id=888775138]
+
+[node name="PlayerSquad01" parent="Units/PlayerUnits" unique_id=1230120265 instance=ExtResource("1_hmxj8")]
+position = Vector2(200, 200)
+
+[node name="EnemyUnits" type="Node2D" parent="Units" unique_id=43536588]
+
+[node name="EnemySquad01" parent="Units/EnemyUnits" unique_id=960286623 instance=ExtResource("1_hmxj8")]
+position = Vector2(500, 200)
+
+[node name="Effects" type="Node2D" parent="." unique_id=596962846]
+
+[node name="CameraRig" type="Node2D" parent="." unique_id=761841122]
+script = ExtResource("3_j1n7a")
+
+[node name="Camera2D" type="Camera2D" parent="CameraRig" unique_id=1142696902]
+
+[node name="DebugRoot" type="Node2D" parent="." unique_id=780695408]
