@@ -27,6 +27,7 @@ def main() -> int:
     steps = [
         ("task rules", [sys.executable, "scripts/review/check_task_rules.py", str(repo), "--task", args.task, "--rev", args.rev]),
         ("godot rules", [sys.executable, "scripts/review/check_godot_rules.py", str(repo)]),
+        ("gdtoolkit", ["bash", "scripts/review/check_gdtoolkit.sh", str(repo)]),
         ("commit evidence", [sys.executable, "scripts/review/check_commit_evidence.py", str(repo), args.rev]),
         ("godot import", ["bash", "scripts/review/run_godot_import.sh", str(repo)]),
     ]

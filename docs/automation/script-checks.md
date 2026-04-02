@@ -28,6 +28,15 @@ Checks:
 - commit message contains `Command:`
 - commit message contains at least one result-style section
 
+## `scripts/review/check_gdtoolkit.sh`
+
+Runs community GDScript lint/format checks when available:
+
+- `gdlint game/test`
+- `gdformat --check game/test`
+
+If unavailable, reports a clear skip.
+
 ## `scripts/review/run_all_checks.py`
 
 Wrapper that runs all configured checks in sequence and returns a combined status.

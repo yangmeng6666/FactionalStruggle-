@@ -23,6 +23,7 @@ Run:
 
 - task-rule checks
 - Godot-rule checks
+- gdtoolkit lint/format checks when available
 - commit-evidence checks
 - Godot import check
 
