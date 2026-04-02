@@ -12,6 +12,13 @@ Use this template when validating each executor submission.
 - Validator:
 - Date:
 
+## 0. Dependency Gate
+
+- [ ] task was unlocked when work started
+- [ ] all declared dependencies are already accepted
+
+Notes:
+
 ## 1. Scope Check
 
 ### `git diff --stat`

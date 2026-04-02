@@ -4,6 +4,14 @@
 
 Create a simple pre-battle interface where the player can choose a temporary roster and then enter the battle scene.
 
+## Dependencies
+
+- `T0` must be accepted
+
+## Unlock rule
+
+This task is unlocked only after `T0` is accepted.
+
 ## Read before implementing
 
 - `docs/harness/executor-start.md`

@@ -4,6 +4,15 @@
 
 Implement a simple combat loop where opposing units can engage and fight in pairs.
 
+## Dependencies
+
+- `T2` must be accepted
+- `T3` must be accepted
+
+## Unlock rule
+
+This task is unlocked only after both `T2` and `T3` are accepted.
+
 ## Read before implementing
 
 - `docs/harness/executor-start.md`

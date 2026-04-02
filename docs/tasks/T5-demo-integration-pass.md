@@ -4,6 +4,17 @@
 
 Make the whole loop coherent from entry UI to battlefield combat.
 
+## Dependencies
+
+- `T1` must be accepted
+- `T2` must be accepted
+- `T3` must be accepted
+- `T4` must be accepted
+
+## Unlock rule
+
+This task is unlocked only after `T1`, `T2`, `T3`, and `T4` are accepted.
+
 ## Read before implementing
 
 - `docs/harness/executor-start.md`

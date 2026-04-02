@@ -23,8 +23,9 @@ Start here, then read only the next file your role needs.
 Read only:
 
 1. `docs/harness/executor-start.md`
-2. the assigned task card in `docs/tasks/`
-3. any file explicitly referenced by that task card
+2. confirm the task is unlocked in `docs/tasks/dependency-graph.md`
+3. the assigned task card in `docs/tasks/`
+4. any file explicitly referenced by that task card
 
 Do not read the full docs tree unless the task card tells you to.
 Do not edit planner/validator-owned docs.
@@ -34,10 +35,11 @@ Do not edit planner/validator-owned docs.
 Read only:
 
 1. `docs/harness/validator-start.md`
-2. the assigned task card in `docs/tasks/`
-3. `docs/validation/protocol.md`
-4. `docs/validation/task-checklist.md`
-5. `docs/validation/performance-red-lines.md` for gameplay/runtime tasks
+2. `docs/tasks/dependency-graph.md`
+3. the assigned task card in `docs/tasks/`
+4. `docs/validation/protocol.md`
+5. `docs/validation/task-checklist.md`
+6. `docs/validation/performance-red-lines.md` for gameplay/runtime tasks
 
 ## Design Principle
 

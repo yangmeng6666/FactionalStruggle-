@@ -4,6 +4,14 @@
 
 Make battlefield control reliable enough for demo use.
 
+## Dependencies
+
+- `T1` must be accepted
+
+## Unlock rule
+
+This task is unlocked only after `T1` is accepted.
+
 ## Read before implementing
 
 - `docs/harness/executor-start.md`

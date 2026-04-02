@@ -10,6 +10,14 @@ Validate in this order:
 4. acceptance criteria
 5. regression sanity
 
+## 0. Dependency Gate
+
+Before deep review, check whether the task was unlocked according to:
+
+- `docs/tasks/dependency-graph.md`
+
+If required dependencies are not accepted, stop and mark the task as not ready for review.
+
 ## 1. Scope
 
 Use:

@@ -1,6 +1,11 @@
 # Task Index
 
 Read only the task card you are assigned.
+Check task lock/unlock status via `docs/tasks/dependency-graph.md`.
+
+## Dependency graph
+
+- `docs/tasks/dependency-graph.md`
 
 ## Task Cards
 

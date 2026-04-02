@@ -4,6 +4,14 @@
 
 Turn the current battle scene into an actual battlefield with visible terrain and navigationally meaningful obstacles.
 
+## Dependencies
+
+- `T0` must be accepted
+
+## Unlock rule
+
+This task is unlocked only after `T0` is accepted.
+
 ## Read before implementing
 
 - `docs/harness/executor-start.md`

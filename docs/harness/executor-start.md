@@ -10,8 +10,9 @@ Implement exactly one assigned task.
 
 Read only:
 
-1. your assigned task card in `docs/tasks/`
-2. any files explicitly listed in that task card under "Read before implementing"
+1. confirm your task is unlocked in `docs/tasks/dependency-graph.md`
+2. your assigned task card in `docs/tasks/`
+3. any files explicitly listed in that task card under "Read before implementing"
 
 Do not browse the whole docs tree by default.
 
