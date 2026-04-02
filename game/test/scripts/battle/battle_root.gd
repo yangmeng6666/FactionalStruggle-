@@ -3,6 +3,8 @@ extends Node2D
 @onready var player_units_root: Node = $Units/PlayerUnits
 @onready var enemy_units_root: Node = $Units/EnemyUnits
 
+const SQUAD_SCENE: String = "res://scenes/units/squad.tscn"
+
 func _ready() -> void:
 	add_to_group("battle_root")
 	for squad in get_player_squads():
@@ -11,6 +13,39 @@ func _ready() -> void:
 	for squad in get_enemy_squads():
 		if squad.has_method("set_team"):
 			squad.set_team("enemy")
+
+func spawn_player_units(troop_type: String) -> void:
+	# Clear existing player units
+	for child in player_units_root.get_children():
+		child.queue_free()
+
+	# Spawn based on selection
+	var spawn_positions: Array[Vector2] = [
+		Vector2(200, 200),
+		Vector2(250, 280),
+		Vector2(150, 280),
+	]
+
+	match troop_type:
+		"infantry":
+			_spawn_squad_at("infantry", spawn_positions[0])
+		"cavalry":
+			_spawn_squad_at("cavalry", spawn_positions[0])
+		_:
+			_spawn_squad_at("infantry", spawn_positions[0])
+
+
+func _spawn_squad_at(troop_type: String, position: Vector2) -> void:
+	var squad_scene: PackedScene = load(SQUAD_SCENE)
+	if squad_scene == null:
+		return
+
+	var squad: CharacterBody2D = squad_scene.instantiate()
+	squad.global_position = position
+	player_units_root.add_child(squad)
+
+	if squad.has_method("set_team"):
+		squad.set_team("player")
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("command_move"):
