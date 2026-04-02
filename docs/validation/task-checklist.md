@@ -83,6 +83,15 @@ Notes:
 
 Notes:
 
+## 6. Performance Review
+
+- [ ] no severe hot-loop scene-tree scans introduced
+- [ ] no obvious avoidable allocation-heavy per-frame logic introduced
+- [ ] no naive all-to-all gameplay logic introduced without justification
+- [ ] no other red-line issue from `docs/validation/performance-red-lines.md`
+
+Notes:
+
 ## Final Result
 
 - [ ] PASS

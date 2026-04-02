@@ -11,6 +11,7 @@ Determine whether the assigned executor submission passes.
 1. assigned task card in `docs/tasks/`
 2. `docs/validation/protocol.md`
 3. `docs/validation/task-checklist.md`
+4. `docs/validation/performance-red-lines.md` for gameplay/runtime tasks
 
 ## Core principle
 

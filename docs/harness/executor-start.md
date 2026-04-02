@@ -21,6 +21,9 @@ Do not browse the whole docs tree by default.
 - avoid unrelated refactors
 - do not edit planner/validator-owned docs
 - keep the implementation surface small and reviewable
+- avoid obvious performance traps in gameplay hot paths
+
+Read `docs/validation/performance-red-lines.md` if your task touches runtime gameplay logic.
 
 ## Required deliverables
 

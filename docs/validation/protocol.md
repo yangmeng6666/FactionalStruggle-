@@ -52,6 +52,14 @@ Do not silently add hidden criteria unless needed for correctness.
 
 Quickly check whether the change obviously broke baseline functionality.
 
+## 6. Performance Review
+
+For gameplay/runtime tasks, also review against:
+
+- `docs/validation/performance-red-lines.md`
+
+A task should be marked **FAIL** if it introduces a severe and avoidable performance problem, even when functionally correct.
+
 ## Result Labels
 
 ### PASS

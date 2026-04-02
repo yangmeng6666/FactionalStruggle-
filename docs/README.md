@@ -37,6 +37,7 @@ Read only:
 2. the assigned task card in `docs/tasks/`
 3. `docs/validation/protocol.md`
 4. `docs/validation/task-checklist.md`
+5. `docs/validation/performance-red-lines.md` for gameplay/runtime tasks
 
 ## Design Principle
 
