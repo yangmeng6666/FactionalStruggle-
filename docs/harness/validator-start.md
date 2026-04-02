@@ -4,7 +4,7 @@ Read this first. Then read only the task card and validation protocol.
 
 ## Your job
 
-Determine whether the assigned executor submission passes and update the status board accordingly.
+Determine whether the assigned executor submission passes, update the status board, and write a durable review record.
 
 ## Read next
 

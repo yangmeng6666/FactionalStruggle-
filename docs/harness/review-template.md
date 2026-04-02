@@ -52,3 +52,4 @@ Use this template when reviewing an executor submission.
 - required changes:
 - optional cleanup:
 - status board update:
+- review record path:

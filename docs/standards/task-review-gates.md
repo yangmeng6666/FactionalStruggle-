@@ -27,6 +27,8 @@ Expected progression:
 - `IN_REVIEW`
 - final validator state
 
+When a task is submitted for review, the status board should already reference the submitted commit in `Latest Commit`.
+
 Enforcement: **script + agent-review**
 
 ### Gate 2 - Protected docs gate

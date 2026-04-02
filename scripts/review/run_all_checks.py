@@ -31,6 +31,8 @@ def main() -> int:
         ("godot import", ["bash", "scripts/review/run_godot_import.sh", str(repo)]),
     ]
 
+    print(f"Task: {args.task} | Rev: {args.rev}")
+
     for name, cmd in steps:
         code = run_step(name, cmd, cwd=repo)
         if code != 0:

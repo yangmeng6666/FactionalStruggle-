@@ -95,6 +95,15 @@ def main() -> int:
     if task_id not in dependency_graph:
         warnings.append(f"task {task_id} missing from dependency graph parse")
 
+    board_row = status_board.get(task_id)
+    if board_row:
+        status = board_row["status"]
+        latest_commit = board_row["latest_commit"]
+        if status not in {"IN_REVIEW", "PASS", "PASS_WITH_NOTES", "FAIL"}:
+            warnings.append(f"task {task_id} status is {status}, expected review-ready or finalized state")
+        if latest_commit not in {rev, "-"} and rev not in latest_commit:
+            warnings.append(f"status board latest commit '{latest_commit}' does not mention reviewed rev '{rev}'")
+
     for changed in changed_files:
         if any(changed.startswith(prefix) for prefix in PROTECTED_PREFIXES):
             failures.append(f"protected docs modified: {changed}")

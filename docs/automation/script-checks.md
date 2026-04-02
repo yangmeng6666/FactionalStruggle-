@@ -32,6 +32,10 @@ Checks:
 
 Wrapper that runs all configured checks in sequence and returns a combined status.
 
+## `scripts/review/write_review_record.py`
+
+Creates a standardized review record file under `docs/validation/records/`.
+
 ## `scripts/review/run_godot_import.sh`
 
 Runs:

@@ -45,6 +45,13 @@ One of:
 - `FAIL`
 - `NOT_READY_FOR_REVIEW`
 
+### 4. Record outcome
+
+Write the review result into:
+
+- `docs/tasks/status-board.md`
+- `docs/validation/records/<task>-<commit>.md`
+
 ## Principle
 
 If a rule can be checked reliably by script, prefer script.
