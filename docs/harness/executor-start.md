@@ -24,8 +24,14 @@ Do not browse the whole docs tree by default.
 - do not edit planner/validator-owned docs
 - keep the implementation surface small and reviewable
 - avoid obvious performance traps in gameplay hot paths
+- follow project rules under `docs/standards/`
 
-Read `docs/validation/performance-red-lines.md` if your task touches runtime gameplay logic.
+Read:
+
+- `docs/standards/godot-coding-standards.md`
+- `docs/standards/godot-performance-rules.md`
+
+if your task touches Godot gameplay/runtime logic.
 
 ## Required deliverables
 

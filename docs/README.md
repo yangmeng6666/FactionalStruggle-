@@ -57,3 +57,14 @@ The goal is to give agents:
 - explicit validation rules
 
 Not a giant wall of instructions.
+
+## Standards and automation
+
+Project rules live under:
+
+- `docs/standards/`
+- `docs/automation/`
+
+Automated review helpers live under:
+
+- `scripts/review/`

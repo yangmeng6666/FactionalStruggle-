@@ -13,8 +13,10 @@ Determine whether the assigned executor submission passes and update the status 
 3. assigned task card in `docs/tasks/`
 4. `docs/validation/protocol.md`
 5. `docs/validation/task-checklist.md`
-6. `docs/validation/performance-red-lines.md` for gameplay/runtime tasks
-7. `docs/harness/review-template.md`
+6. `docs/standards/godot-coding-standards.md` for Godot tasks
+7. `docs/standards/godot-performance-rules.md` for gameplay/runtime tasks
+8. `docs/automation/review-pipeline.md`
+9. `docs/harness/review-template.md`
 
 ## Core principle
 

@@ -64,7 +64,7 @@ Quickly check whether the change obviously broke baseline functionality.
 
 For gameplay/runtime tasks, also review against:
 
-- `docs/validation/performance-red-lines.md`
+- `docs/standards/godot-performance-rules.md`
 
 A task should be marked **FAIL** if it introduces a severe and avoidable performance problem, even when functionally correct.
 
