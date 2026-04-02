@@ -3,7 +3,17 @@ extends Node2D
 @onready var player_units_root: Node = $Units/PlayerUnits
 @onready var enemy_units_root: Node = $Units/EnemyUnits
 
-const SQUAD_SCENE: String = "res://scenes/units/squad.tscn"
+const SQUAD_SCENE: PackedScene = preload("res://scenes/units/squad.tscn")
+
+# Infantry: 3 units in formation, normal stats
+const INFANTRY_POSITIONS: Array[Vector2] = [
+	Vector2(200, 200),
+	Vector2(150, 260),
+	Vector2(250, 260),
+]
+
+# Cavalry: 1 elite unit, faster but less hp
+const CAVALRY_POSITION: Vector2 = Vector2(200, 200)
 
 func _ready() -> void:
 	add_to_group("battle_root")
@@ -19,31 +29,32 @@ func spawn_player_units(troop_type: String) -> void:
 	for child in player_units_root.get_children():
 		child.queue_free()
 
-	# Spawn based on selection
-	var spawn_positions: Array[Vector2] = [
-		Vector2(200, 200),
-		Vector2(250, 280),
-		Vector2(150, 280),
-	]
-
 	match troop_type:
 		"infantry":
-			_spawn_squad_at("infantry", spawn_positions[0])
+			_spawn_infantry_team()
 		"cavalry":
-			_spawn_squad_at("cavalry", spawn_positions[0])
+			_spawn_cavalry_team()
 		_:
-			_spawn_squad_at("infantry", spawn_positions[0])
+			_spawn_infantry_team()
 
 
-func _spawn_squad_at(troop_type: String, position: Vector2) -> void:
-	var squad_scene: PackedScene = load(SQUAD_SCENE)
-	if squad_scene == null:
-		return
+func _spawn_infantry_team() -> void:
+	for pos in INFANTRY_POSITIONS:
+		var squad: CharacterBody2D = SQUAD_SCENE.instantiate()
+		squad.global_position = pos
+		player_units_root.add_child(squad)
+		if squad.has_method("set_team"):
+			squad.set_team("player")
 
-	var squad: CharacterBody2D = squad_scene.instantiate()
-	squad.global_position = position
+
+func _spawn_cavalry_team() -> void:
+	var squad: CharacterBody2D = SQUAD_SCENE.instantiate()
+	squad.global_position = CAVALRY_POSITION
+	# Cavalry: faster movement, less hp, larger presence
+	squad.set("move_speed", 200.0)
+	squad.set("max_hp", 80)
+	squad.set("selection_radius", 24.0)
 	player_units_root.add_child(squad)
-
 	if squad.has_method("set_team"):
 		squad.set_team("player")
 
