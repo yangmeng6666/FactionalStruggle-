@@ -17,12 +17,13 @@ var _selected_troop: TroopType = TroopType.INFANTRY
 
 func _ready() -> void:
 	# Get references to UI elements
-	var panel = $PanelContainer/VBox
+	var vbox = $PanelContainer/VBox
+	var troop_list = vbox.get_node("TroopList")
 	_troop_buttons = [
-		panel/TroopList/TroopOption0,
-		panel/TroopList/TroopOption1,
+		troop_list.get_node("TroopOption0"),
+		troop_list.get_node("TroopOption1"),
 	]
-	_confirm_button = panel/ConfirmButton
+	_confirm_button = vbox.get_node("ConfirmButton")
 	_status_label = $StatusLabel
 
 	# Connect signals
