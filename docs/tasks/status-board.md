@@ -29,7 +29,7 @@ Use this file.
 | Task | Status | Owner | Blocked By | Latest Commit | Notes |
 |---|---|---|---|---|---|
 | T0 | PASS | planner | - | ee028d8 / 8f47a72 / 8cf979a | Harness baseline, progressive disclosure, performance review, dependency gates established |
-| T1 | READY | - | - | - | Battlefield terrain and obstacles |
+| T1 | IN_REVIEW | executor | - | - | Scene-authored navigation corridors and visible obstacle layout submitted; no commit requested |
 | T2 | READY | - | - | - | Troop selection and battle entry |
 | T3 | LOCKED | - | T1 | - | Wait for battlefield/pathing baseline |
 | T4 | LOCKED | - | T2, T3 | - | Wait for battle entry and stable movement |

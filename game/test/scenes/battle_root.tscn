@@ -4,15 +4,35 @@
 [ext_resource type="Script" path="res://scripts/battle/battle_root.gd" id="2_y0r5b"]
 [ext_resource type="Script" path="res://scripts/battle/camera_controller.gd" id="3_j1n7a"]
 
-[sub_resource type="NavigationPolygon" id="NavigationPolygon_7dm0k"]
-vertices = PackedVector2Array(569.96094, -310, 568.03125, 313, -564.97656, 313, -564.0078, -310.9922)
-polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
-outlines = Array[PackedVector2Array]([PackedVector2Array(-574, -321, -575, 323, 578, 323, 580, -320)])
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_battlefield"]
+vertices = PackedVector2Array(-560, 140, -180, 140, -180, 310, -560, 310, -40, 140, -40, 310, -180, -140, -40, -140, -180, -310, -40, -310, 200, -310, 200, -140, 320, -310, 320, -140, 200, 140, 320, 140, 200, 310, 320, 310, 560, 140, 560, 310)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3), PackedInt32Array(1, 4, 5, 2), PackedInt32Array(6, 7, 4, 1), PackedInt32Array(8, 9, 7, 6), PackedInt32Array(9, 10, 11, 7), PackedInt32Array(10, 12, 13, 11), PackedInt32Array(11, 13, 15, 14), PackedInt32Array(14, 15, 17, 16), PackedInt32Array(15, 18, 19, 17)])
+outlines = Array[PackedVector2Array]([])
 
 [node name="BattleRoot" type="Node2D" unique_id=1107046231]
 script = ExtResource("2_y0r5b")
 
 [node name="MapRoot" type="Node2D" parent="." unique_id=287958443]
+
+[node name="BattlefieldBounds" type="Polygon2D" parent="MapRoot" unique_id=2000000001]
+color = Color(0.188235, 0.207843, 0.172549, 1)
+polygon = PackedVector2Array(-590, -340, 590, -340, 590, 340, -590, 340)
+
+[node name="WalkableGround" type="Polygon2D" parent="MapRoot" unique_id=2000000002]
+color = Color(0.509804, 0.560784, 0.403922, 1)
+polygon = PackedVector2Array(-560, -310, 560, -310, 560, 310, -560, 310)
+
+[node name="WestRidge" type="Polygon2D" parent="MapRoot" unique_id=2000000003]
+color = Color(0.25098, 0.247059, 0.219608, 1)
+polygon = PackedVector2Array(-560, -310, -180, -310, -180, 140, -560, 140)
+
+[node name="CentralBarricade" type="Polygon2D" parent="MapRoot" unique_id=2000000004]
+color = Color(0.301961, 0.282353, 0.227451, 1)
+polygon = PackedVector2Array(-40, -140, 200, -140, 200, 310, -40, 310)
+
+[node name="EastWreck" type="Polygon2D" parent="MapRoot" unique_id=2000000005]
+color = Color(0.243137, 0.254902, 0.266667, 1)
+polygon = PackedVector2Array(320, -310, 560, -310, 560, 140, 320, 140)
 
 [node name="GroundLayer" type="TileMapLayer" parent="MapRoot" unique_id=1127791390]
 
@@ -21,7 +41,7 @@ script = ExtResource("2_y0r5b")
 [node name="DecoLayer" type="TileMapLayer" parent="MapRoot" unique_id=1942692313]
 
 [node name="Navigation" type="NavigationRegion2D" parent="." unique_id=1233542160]
-navigation_polygon = SubResource("NavigationPolygon_7dm0k")
+navigation_polygon = SubResource("NavigationPolygon_battlefield")
 
 [node name="CapturePoints" type="Node2D" parent="." unique_id=1802534850]
 
@@ -30,12 +50,12 @@ navigation_polygon = SubResource("NavigationPolygon_7dm0k")
 [node name="PlayerUnits" type="Node2D" parent="Units" unique_id=888775138]
 
 [node name="PlayerSquad01" parent="Units/PlayerUnits" unique_id=1230120265 instance=ExtResource("1_hmxj8")]
-position = Vector2(200, 200)
+position = Vector2(-430, 220)
 
 [node name="EnemyUnits" type="Node2D" parent="Units" unique_id=43536588]
 
 [node name="EnemySquad01" parent="Units/EnemyUnits" unique_id=960286623 instance=ExtResource("1_hmxj8")]
-position = Vector2(500, 200)
+position = Vector2(430, 220)
 
 [node name="Effects" type="Node2D" parent="." unique_id=596962846]
 
