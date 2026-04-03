@@ -30,7 +30,7 @@ Use this file.
 |---|---|---|---|---|---|
 | T0 | PASS | planner | - | ee028d8 / 8f47a72 / 8cf979a | Harness baseline, progressive disclosure, performance review, dependency gates established |
 | T1 | IN_REVIEW | executor | - | - | Scene-authored navigation corridors and visible obstacle layout submitted; no commit requested |
-| T2 | READY | - | - | - | Troop selection and battle entry |
+| T2 | PASS_WITH_NOTES | executor | - | 5bd12aa | [PASS WITH NOTES] Infantry: 3 units formation; Cavalry: 1 elite unit (move_speed=200, max_hp=80, selection_radius=24). Runtime evidence needs strengthening. Do not expand to movement/combat. Troop diffs are hardcoded; acceptable for now. .godot/ and .uid generation artifacts need consistent ignore/submit policy. |
 | T3 | LOCKED | - | T1 | - | Wait for battlefield/pathing baseline |
 | T4 | LOCKED | - | T2, T3 | - | Wait for battle entry and stable movement |
 | T5 | LOCKED | - | T1, T2, T3, T4 | - | Final integration only |
