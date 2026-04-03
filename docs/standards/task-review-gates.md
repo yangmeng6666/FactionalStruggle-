@@ -46,12 +46,19 @@ Minimum expected evidence:
 - `Runtime evidence:` section
 - `Command:` line
 - result summary
+- a concrete observation of the implemented behavior, not just a generic success note
 
 Enforcement: **script + agent-review**
 
 ### Gate 4 - Scope gate
 
 Changed files must map cleanly to the assigned task.
+
+Default assumption:
+
+- functionally scoped tasks should only touch files named or implied by the task card
+- docs/automation/harness files are out of scope unless the task explicitly requires them
+- incidental generated files should be ignored via repo rules rather than reviewed as feature work
 
 Enforcement: **script + agent-review**
 

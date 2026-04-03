@@ -69,6 +69,7 @@ Result:
 - [ ] project/script loaded successfully
 - [ ] claimed feature was actually exercised
 - [ ] no blocking parser/runtime issue remains
+- [ ] evidence ties back to the task acceptance criteria
 
 Notes:
 
