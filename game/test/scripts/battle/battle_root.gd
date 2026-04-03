@@ -14,6 +14,10 @@ const INFANTRY_POSITIONS: Array[Vector2] = [
 
 # Cavalry: 1 elite unit, faster but less hp
 const CAVALRY_POSITION: Vector2 = Vector2(-430, 220)
+const MIN_FORMATION_SPACING := 32.0
+const FORMATION_SPACING_MULTIPLIER := 2.5
+const FORMATION_SEARCH_STEPS := 7
+const FORMATION_SEARCH_STEP_SCALE := 0.35
 
 func _ready() -> void:
 	add_to_group("battle_root")
@@ -102,10 +106,70 @@ func _issue_move_command(target: Vector2) -> void:
 	if selected_squads.is_empty():
 		return
 
+	var move_squads: Array = []
+	var formation_center := Vector2.ZERO
 	for squad in selected_squads:
 		if not is_instance_valid(squad):
 			continue
 		if squad.get("team") != "player":
 			continue
-		if squad.has_method("set_move_target"):
-			squad.set_move_target(target)
+		move_squads.append(squad)
+		formation_center += squad.global_position
+
+	if move_squads.is_empty():
+		return
+
+	formation_center /= move_squads.size()
+	var move_direction := target - formation_center
+	if move_direction.length_squared() <= 0.0001:
+		move_direction = Vector2.RIGHT
+	else:
+		move_direction = move_direction.normalized()
+	var lateral_axis := Vector2(-move_direction.y, move_direction.x)
+
+	move_squads.sort_custom(func(a, b): return a.global_position.dot(lateral_axis) < b.global_position.dot(lateral_axis))
+
+	var spacing := MIN_FORMATION_SPACING
+	for squad in move_squads:
+		spacing = maxf(spacing, squad.get("selection_radius") * FORMATION_SPACING_MULTIPLIER)
+
+	var navigation_map := RID()
+	var navigation_agent := move_squads[0].get_node_or_null("NavigationAgent2D") as NavigationAgent2D
+	if navigation_agent != null:
+		navigation_map = navigation_agent.get_navigation_map()
+
+	var assigned_targets: Array[Vector2] = []
+	for index in move_squads.size():
+		var slot_offset := (float(index) - (move_squads.size() - 1) * 0.5) * spacing
+		var slot_target := _get_formation_target(target, lateral_axis, slot_offset, spacing, navigation_map, assigned_targets)
+		assigned_targets.append(slot_target)
+		move_squads[index].set_move_target(slot_target)
+
+
+func _get_formation_target(target: Vector2, lateral_axis: Vector2, slot_offset: float, spacing: float, navigation_map: RID, assigned_targets: Array[Vector2]) -> Vector2:
+	var best_target := _get_nav_safe_point(navigation_map, target + lateral_axis * slot_offset)
+	if assigned_targets.is_empty():
+		return best_target
+
+	var best_score := -INF
+	for search_step in range(FORMATION_SEARCH_STEPS):
+		var search_offset := slot_offset
+		if search_step > 0:
+			var step_sign := -1.0 if search_step % 2 == 0 else 1.0
+			search_offset += ceil(search_step * 0.5) * spacing * FORMATION_SEARCH_STEP_SCALE * step_sign
+		var candidate := _get_nav_safe_point(navigation_map, target + lateral_axis * search_offset)
+		var nearest_assigned_distance := INF
+		for assigned_target in assigned_targets:
+			nearest_assigned_distance = minf(nearest_assigned_distance, candidate.distance_to(assigned_target))
+		var score := nearest_assigned_distance - absf(search_offset - slot_offset)
+		if score > best_score:
+			best_score = score
+			best_target = candidate
+
+	return best_target
+
+
+func _get_nav_safe_point(navigation_map: RID, point: Vector2) -> Vector2:
+	if navigation_map.is_valid():
+		return NavigationServer2D.map_get_closest_point(navigation_map, point)
+	return point
