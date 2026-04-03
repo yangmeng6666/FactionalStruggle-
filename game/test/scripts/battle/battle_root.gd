@@ -18,6 +18,9 @@ const MIN_FORMATION_SPACING := 32.0
 const FORMATION_SPACING_MULTIPLIER := 2.5
 const FORMATION_SEARCH_STEPS := 7
 const FORMATION_SEARCH_STEP_SCALE := 0.35
+const TARGET_REFRESH_INTERVAL := 0.25
+
+var _target_refresh_timer: float = 0.0
 
 func _ready() -> void:
 	add_to_group("battle_root")
@@ -27,6 +30,17 @@ func _ready() -> void:
 	for squad in get_enemy_squads():
 		if squad.has_method("set_team"):
 			squad.set_team("enemy")
+
+func _physics_process(delta: float) -> void:
+	_target_refresh_timer -= delta
+	if _target_refresh_timer > 0.0:
+		return
+
+	_target_refresh_timer = TARGET_REFRESH_INTERVAL
+	var player_squads := get_player_squads()
+	var enemy_squads := get_enemy_squads()
+	_update_combat_targets(player_squads, enemy_squads)
+	_update_combat_targets(enemy_squads, player_squads)
 
 func spawn_player_units(troop_type: String) -> void:
 	# Clear existing player units
@@ -146,6 +160,61 @@ func _issue_move_command(target: Vector2) -> void:
 		move_squads[index].set_move_target(slot_target)
 
 
+func _update_combat_targets(allies: Array, enemies: Array) -> void:
+	var claimed_enemy_ids: Dictionary = {}
+
+	for squad in allies:
+		if not is_instance_valid(squad):
+			continue
+		if not squad.has_method("can_auto_engage") or not squad.can_auto_engage():
+			continue
+		if not squad.has_method("get_combat_target"):
+			continue
+
+		var current_target = squad.get_combat_target()
+		if current_target == null:
+			continue
+		if not enemies.has(current_target):
+			squad.set_combat_target(null)
+			continue
+		var current_target_id: int = current_target.get_instance_id()
+		if claimed_enemy_ids.has(current_target_id):
+			squad.set_combat_target(null)
+			continue
+		claimed_enemy_ids[current_target_id] = true
+
+	for squad in allies:
+		if not is_instance_valid(squad):
+			continue
+		if not squad.has_method("can_auto_engage") or not squad.can_auto_engage():
+			continue
+		if squad.has_method("get_combat_target") and squad.get_combat_target() != null:
+			continue
+
+		var combat_target = _get_nearest_enemy(squad, enemies, claimed_enemy_ids)
+		if combat_target != null:
+			claimed_enemy_ids[combat_target.get_instance_id()] = true
+		squad.set_combat_target(combat_target)
+
+func _get_nearest_enemy(squad, enemies: Array, claimed_enemy_ids: Dictionary):
+	var nearest_enemy = null
+	var nearest_distance := INF
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		if enemy == squad:
+			continue
+		if enemy.has_method("is_dead") and enemy.is_dead():
+			continue
+		var enemy_id: int = enemy.get_instance_id()
+		if claimed_enemy_ids.has(enemy_id):
+			continue
+		var distance: float = squad.global_position.distance_squared_to(enemy.global_position)
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest_enemy = enemy
+	return nearest_enemy
+
 func _get_formation_target(target: Vector2, lateral_axis: Vector2, slot_offset: float, spacing: float, navigation_map: RID, assigned_targets: Array[Vector2]) -> Vector2:
 	var best_target := _get_nav_safe_point(navigation_map, target + lateral_axis * slot_offset)
 	if assigned_targets.is_empty():
@@ -170,6 +239,6 @@ func _get_formation_target(target: Vector2, lateral_axis: Vector2, slot_offset: 
 
 
 func _get_nav_safe_point(navigation_map: RID, point: Vector2) -> Vector2:
-	if navigation_map.is_valid():
+	if navigation_map.is_valid() and NavigationServer2D.map_get_iteration_id(navigation_map) > 0:
 		return NavigationServer2D.map_get_closest_point(navigation_map, point)
 	return point
