@@ -33,7 +33,7 @@ Use this file.
 | T2 | PASS_WITH_NOTES | executor | - | 5bd12aa | [PASS WITH NOTES] Infantry: 3 units formation; Cavalry: 1 elite unit (move_speed=200, max_hp=80, selection_radius=24). Runtime evidence needs strengthening. Do not expand to movement/combat. Troop diffs are hardcoded; acceptable for now. .godot/ and .uid generation artifacts need consistent ignore/submit policy. |
 | T3 | PASS_WITH_NOTES | executor | T1 | dba9bad | Controlled multi-unit movement accepted; runtime evidence format should be strengthened in future submissions |
 | T4 | PASS | executor | T2, T3 | 1c974ac | Minimal melee combat loop accepted (planner override from PASS_WITH_NOTES) |
-| T5 | IN_REVIEW | executor | - | f46b971 | Integration pass - full loop confirmed via code trace, runtime evidence pending Godot run |
+| T5 | PASS | executor | - | 121525f | Integration pass - full loop confirmed via Godot headless runs (4.5.2 + 4.6.1), no script/parse errors |
 
 ## Update rules
 
