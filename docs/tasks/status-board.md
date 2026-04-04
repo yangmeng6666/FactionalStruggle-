@@ -32,8 +32,8 @@ Use this file.
 | T1 | PASS_WITH_NOTES | executor | - | 6a671d1 | Battlefield terrain and obstacle layout accepted; runtime evidence should be strengthened in future submissions |
 | T2 | PASS_WITH_NOTES | executor | - | 5bd12aa | [PASS WITH NOTES] Infantry: 3 units formation; Cavalry: 1 elite unit (move_speed=200, max_hp=80, selection_radius=24). Runtime evidence needs strengthening. Do not expand to movement/combat. Troop diffs are hardcoded; acceptable for now. .godot/ and .uid generation artifacts need consistent ignore/submit policy. |
 | T3 | PASS_WITH_NOTES | executor | T1 | dba9bad | Controlled multi-unit movement accepted; runtime evidence format should be strengthened in future submissions |
-| T4 | PASS_WITH_NOTES | executor | T2, T3 | 1c974ac | Minimal melee combat loop accepted; runtime evidence format should be strengthened in future submissions |
-| T5 | LOCKED | - | T1, T2, T3, T4 | - | Final integration only |
+| T4 | PASS | executor | T2, T3 | 1c974ac | Minimal melee combat loop accepted (planner override from PASS_WITH_NOTES) |
+| T5 | IN_PROGRESS | executor | - | - | Final integration pass — owner override from yangmeng |
 
 ## Update rules
 
