@@ -34,6 +34,7 @@ Use this file.
 | T3 | PASS_WITH_NOTES | executor | T1 | dba9bad | Controlled multi-unit movement accepted; runtime evidence format should be strengthened in future submissions |
 | T4 | PASS | executor | T2, T3 | 1c974ac | Minimal melee combat loop accepted (planner override from PASS_WITH_NOTES) |
 | T5 | PASS | executor | - | 121525f | Integration pass - full loop confirmed via Godot headless runs (4.5.2 + 4.6.1), no script/parse errors |
+| T6 | IN_PROGRESS | executor | T4, T5 | - | Combat range tuning and attack/hurt feedback polish in progress |
 
 ## Update rules
 

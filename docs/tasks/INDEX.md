@@ -16,3 +16,4 @@ Check task lock/unlock status via `docs/tasks/dependency-graph.md`.
 - `docs/tasks/T3-controlled-movement-and-multi-unit-command.md`
 - `docs/tasks/T4-pair-combat-and-melee-engagement.md`
 - `docs/tasks/T5-demo-integration-pass.md`
+- `docs/tasks/T6-combat-range-and-feedback-polish.md`

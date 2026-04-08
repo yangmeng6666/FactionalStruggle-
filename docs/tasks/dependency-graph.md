@@ -19,6 +19,7 @@ If a dependency is incomplete or failed, the dependent task is locked.
 - `T3` -> depends on `T1`
 - `T4` -> depends on `T2`, `T3`
 - `T5` -> depends on `T1`, `T2`, `T3`, `T4`
+- `T6` -> depends on `T4`, `T5`
 
 ## Why this shape
 
@@ -47,6 +48,15 @@ Otherwise combat logic gets written against moving targets and placeholder assum
 
 Integration should be a final glue pass, not a substitute for unfinished feature work.
 
+### T6 after T4 and T5
+
+Combat polish should build on:
+
+- accepted melee engagement behavior from `T4`
+- accepted playable loop validation from `T5`
+
+This keeps tuning and presentation work scoped as refinement rather than redefining the already accepted baseline.
+
 ## Concurrency guidance for two developers
 
 Safe parallelism:
@@ -59,6 +69,7 @@ Then:
 - `T3` starts after `T1` passes
 - `T4` starts after both `T2` and `T3` pass
 - `T5` starts only after all feature tasks pass
+- `T6` starts only after `T4` and `T5` pass
 
 ## Validator rule
 
