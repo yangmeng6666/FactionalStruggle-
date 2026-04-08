@@ -19,6 +19,7 @@ const FORMATION_SPACING_MULTIPLIER := 2.5
 const FORMATION_SEARCH_STEPS := 7
 const FORMATION_SEARCH_STEP_SCALE := 0.35
 const TARGET_REFRESH_INTERVAL := 0.25
+const DEFAULT_AUTO_ENGAGE_RANGE := 180.0
 
 var _target_refresh_timer: float = 0.0
 
@@ -199,6 +200,11 @@ func _update_combat_targets(allies: Array, enemies: Array) -> void:
 func _get_nearest_enemy(squad, enemies: Array, claimed_enemy_ids: Dictionary):
 	var nearest_enemy = null
 	var nearest_distance := INF
+	var max_acquire_distance := DEFAULT_AUTO_ENGAGE_RANGE
+	var auto_engage_range = squad.get("auto_engage_range")
+	if auto_engage_range is float or auto_engage_range is int:
+		max_acquire_distance = float(auto_engage_range)
+	var max_acquire_distance_squared := max_acquire_distance * max_acquire_distance
 	for enemy in enemies:
 		if not is_instance_valid(enemy):
 			continue
@@ -210,6 +216,8 @@ func _get_nearest_enemy(squad, enemies: Array, claimed_enemy_ids: Dictionary):
 		if claimed_enemy_ids.has(enemy_id):
 			continue
 		var distance: float = squad.global_position.distance_squared_to(enemy.global_position)
+		if distance > max_acquire_distance_squared:
+			continue
 		if distance < nearest_distance:
 			nearest_distance = distance
 			nearest_enemy = enemy

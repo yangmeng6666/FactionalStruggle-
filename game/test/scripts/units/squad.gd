@@ -4,14 +4,18 @@ extends CharacterBody2D
 @export var move_speed: float = 120.0
 @export var max_hp: int = 100
 @export var selection_radius: float = 16.0
+@export var auto_engage_range: float = 180.0
 
 const ATTACK_INTERVAL := 0.75
 const ATTACK_DAMAGE := 25
+const ATTACK_DAMAGE_FRAME := 4
+const HURT_FLASH_DURATION := 0.12
 
 enum AnimationState {
 	IDLE,
 	WALK,
 	ATTACK,
+	HURT,
 	DEAD,
 }
 
@@ -21,8 +25,11 @@ var _animation_state: int = AnimationState.IDLE
 var _is_dead: bool = false
 var _attack_cooldown: float = 0.0
 var _combat_target = null
+var _pending_attack_target = null
+var _attack_damage_applied: bool = false
 var _melee_range: float = 0.0
 var _manual_move_override: bool = false
+var _hurt_tween: Tween
 
 @onready var navigation_agent: NavigationAgent2D = $NavigationAgent2D
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
@@ -37,6 +44,8 @@ func _ready() -> void:
 	navigation_agent.target_position = global_position
 	if not sprite.animation_finished.is_connected(_on_sprite_animation_finished):
 		sprite.animation_finished.connect(_on_sprite_animation_finished)
+	if not sprite.frame_changed.is_connected(_on_sprite_frame_changed):
+		sprite.frame_changed.connect(_on_sprite_frame_changed)
 	_update_visuals()
 	_update_animation()
 	queue_redraw()
@@ -68,9 +77,7 @@ func _physics_process(delta: float) -> void:
 		if global_position.distance_to(target_position) <= _melee_range:
 			stop_moving()
 			if _attack_cooldown <= 0.0:
-				play_attack_animation()
-				_attack_cooldown = ATTACK_INTERVAL
-				_combat_target.take_damage(ATTACK_DAMAGE)
+				_begin_attack(_combat_target)
 			return
 		navigation_agent.target_position = target_position
 
@@ -122,14 +129,26 @@ func play_attack_animation() -> void:
 		return
 	_set_animation_state(AnimationState.ATTACK)
 
+func _begin_attack(target) -> void:
+	if _is_dead:
+		return
+	_pending_attack_target = target
+	_attack_damage_applied = false
+	_attack_cooldown = ATTACK_INTERVAL
+	if _has_animation(&"attack"):
+		play_attack_animation()
+		return
+	_apply_pending_attack_damage()
+
 func take_damage(amount: int) -> void:
 	if _is_dead or amount <= 0:
 		return
 	current_hp = maxi(0, current_hp - amount)
-	if current_hp > 0:
+	if current_hp <= 0:
+		set_dead(true)
+		queue_free()
 		return
-	set_dead(true)
-	queue_free()
+	_play_hurt_feedback()
 
 func set_combat_target(target) -> void:
 	if _is_dead:
@@ -156,6 +175,12 @@ func set_dead(value: bool) -> void:
 		return
 	_is_dead = value
 	if _is_dead:
+		_pending_attack_target = null
+		_attack_damage_applied = true
+		if _hurt_tween != null:
+			_hurt_tween.kill()
+			_hurt_tween = null
+		modulate = _get_team_color().lerp(Color.WHITE, 0.25 if is_selected else 0.0)
 		_combat_target = null
 		_manual_move_override = false
 		stop_moving()
@@ -173,7 +198,7 @@ func _update_animation() -> void:
 
 	if _is_dead:
 		_set_animation_state(AnimationState.DEAD)
-	elif _animation_state == AnimationState.ATTACK:
+	elif _animation_state == AnimationState.ATTACK or _animation_state == AnimationState.HURT:
 		pass
 	elif velocity.length_squared() > 1.0:
 		_set_animation_state(AnimationState.WALK)
@@ -203,6 +228,8 @@ func _set_animation_state(next_state: int) -> void:
 			else:
 				_animation_state = AnimationState.IDLE
 				_play_animation(&"idle")
+		AnimationState.HURT:
+			_play_animation(&"hurt", &"idle")
 		AnimationState.DEAD:
 			if _has_animation(&"dead"):
 				sprite.play(&"dead")
@@ -220,6 +247,38 @@ func _play_animation(name: StringName, fallback: StringName = &"") -> void:
 
 func _has_animation(name: StringName) -> bool:
 	return sprite.sprite_frames != null and sprite.sprite_frames.has_animation(name)
+
+func _apply_pending_attack_damage() -> void:
+	if _attack_damage_applied:
+		return
+	_attack_damage_applied = true
+	if not is_instance_valid(_pending_attack_target):
+		_pending_attack_target = null
+		return
+	if _pending_attack_target.has_method("is_dead") and _pending_attack_target.is_dead():
+		_pending_attack_target = null
+		return
+	if _pending_attack_target.get("team") == team:
+		_pending_attack_target = null
+		return
+	_pending_attack_target.take_damage(ATTACK_DAMAGE)
+	_pending_attack_target = null
+
+func _play_hurt_feedback() -> void:
+	var base_modulate := _get_team_color().lerp(Color.WHITE, 0.25 if is_selected else 0.0)
+	if _hurt_tween != null:
+		_hurt_tween.kill()
+	modulate = Color.WHITE
+	_hurt_tween = create_tween()
+	_hurt_tween.tween_property(self, "modulate", base_modulate, HURT_FLASH_DURATION)
+	_hurt_tween.finished.connect(func() -> void:
+		_hurt_tween = null
+	)
+	if _animation_state == AnimationState.ATTACK:
+		return
+	if _has_animation(&"hurt"):
+		_animation_state = AnimationState.HURT
+		sprite.play(&"hurt")
 
 func _has_valid_combat_target() -> bool:
 	if not is_instance_valid(_combat_target):
@@ -241,9 +300,16 @@ func _read_melee_range() -> float:
 		return (attack_range_shape.shape as CircleShape2D).radius
 	return selection_radius
 
+func _on_sprite_frame_changed() -> void:
+	if _animation_state == AnimationState.ATTACK and sprite.animation == &"attack" and sprite.frame >= ATTACK_DAMAGE_FRAME:
+		_apply_pending_attack_damage()
+
 func _on_sprite_animation_finished() -> void:
 	if _animation_state == AnimationState.ATTACK and not _is_dead:
+		_apply_pending_attack_damage()
 		_set_animation_state(AnimationState.IDLE)
+	elif _animation_state == AnimationState.HURT and not _is_dead:
+		_update_animation()
 	elif _animation_state == AnimationState.DEAD:
 		sprite.stop()
 

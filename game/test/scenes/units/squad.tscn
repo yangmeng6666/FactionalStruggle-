@@ -1,8 +1,10 @@
 [gd_scene format=3 uid="uid://dvges2uowu75j"]
 
 [ext_resource type="Script" uid="uid://dnesirru2c880" path="res://scripts/units/squad.gd" id="1_y7r9v"]
+[ext_resource type="Texture2D" uid="uid://c5xt4ljc5dabd" path="res://assets/units/swordsman/Swordsman_lvl1_attack_with_shadow.png" id="2_bqrub"]
 [ext_resource type="Texture2D" uid="uid://gricatqxrott" path="res://assets/units/swordsman/Swordsman_lvl1_Idle_with_shadow.png" id="2_vqxf3"]
 [ext_resource type="Texture2D" uid="uid://cufwyvxnufs0x" path="res://assets/units/swordsman/Swordsman_lvl1_Walk_with_shadow.png" id="3_esly6"]
+[ext_resource type="Texture2D" uid="uid://t550rxxei4j5" path="res://assets/units/swordsman/Swordsman_lvl1_Hurt_with_shadow.png" id="3_sa8vl"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_ctq1m"]
 radius = 8.0
@@ -12,6 +14,58 @@ radius = 50.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_cjpso"]
 radius = 12.0
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_g8pgr"]
+atlas = ExtResource("2_bqrub")
+region = Rect2(0, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cbk5p"]
+atlas = ExtResource("2_bqrub")
+region = Rect2(64, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0fpbq"]
+atlas = ExtResource("2_bqrub")
+region = Rect2(128, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_33x4f"]
+atlas = ExtResource("2_bqrub")
+region = Rect2(192, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rwmnl"]
+atlas = ExtResource("2_bqrub")
+region = Rect2(256, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5yrlr"]
+atlas = ExtResource("2_bqrub")
+region = Rect2(320, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6db4q"]
+atlas = ExtResource("2_bqrub")
+region = Rect2(384, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ahaus"]
+atlas = ExtResource("2_bqrub")
+region = Rect2(448, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o03bu"]
+atlas = ExtResource("3_sa8vl")
+region = Rect2(0, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rnp28"]
+atlas = ExtResource("3_sa8vl")
+region = Rect2(64, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_w2qqq"]
+atlas = ExtResource("3_sa8vl")
+region = Rect2(128, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x275c"]
+atlas = ExtResource("3_sa8vl")
+region = Rect2(192, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_j54kx"]
+atlas = ExtResource("3_sa8vl")
+region = Rect2(256, 64, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_esly6"]
 atlas = ExtResource("2_vqxf3")
@@ -59,6 +113,55 @@ region = Rect2(320, 0, 64, 64)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_0fpbq"]
 animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_g8pgr")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cbk5p")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0fpbq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_33x4f")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_rwmnl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5yrlr")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6db4q")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ahaus")
+}],
+"loop": false,
+"name": &"attack",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o03bu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_rnp28")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_w2qqq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_x275c")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_j54kx")
+}],
+"loop": false,
+"name": &"hurt",
+"speed": 10.0
+}, {
 "frames": [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_esly6")
@@ -126,6 +229,6 @@ shape = SubResource("CircleShape2D_cjpso")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=621465373]
 texture_filter = 1
 sprite_frames = SubResource("SpriteFrames_0fpbq")
-animation = &"walk"
-frame = 3
-frame_progress = 0.18048155
+animation = &"idle"
+frame = 0
+frame_progress = 0.0
