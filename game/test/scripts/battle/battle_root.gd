@@ -2,8 +2,10 @@ extends Node2D
 
 @onready var player_units_root: Node = $Units/PlayerUnits
 @onready var enemy_units_root: Node = $Units/EnemyUnits
+@onready var effects_root: Node2D = $Effects
 
 const SQUAD_SCENE: PackedScene = preload("res://scenes/units/squad.tscn")
+const MOVE_TARGET_MARKER_SCRIPT := preload("res://scripts/battle/move_target_marker.gd")
 
 # Infantry: 3 units in formation, normal stats
 const INFANTRY_POSITIONS: Array[Vector2] = [
@@ -160,6 +162,8 @@ func _issue_move_command(target: Vector2) -> void:
 		assigned_targets.append(slot_target)
 		move_squads[index].set_move_target(slot_target)
 
+	_spawn_move_target_marker(target)
+
 
 func _update_combat_targets(allies: Array, enemies: Array) -> void:
 	var claimed_enemy_ids: Dictionary = {}
@@ -250,3 +254,10 @@ func _get_nav_safe_point(navigation_map: RID, point: Vector2) -> Vector2:
 	if navigation_map.is_valid() and NavigationServer2D.map_get_iteration_id(navigation_map) > 0:
 		return NavigationServer2D.map_get_closest_point(navigation_map, point)
 	return point
+
+func _spawn_move_target_marker(target: Vector2) -> void:
+	if effects_root == null:
+		return
+	var marker: Node2D = MOVE_TARGET_MARKER_SCRIPT.new()
+	marker.global_position = target
+	effects_root.add_child(marker)
