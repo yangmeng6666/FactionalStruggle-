@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "resources": {
+	"population": { "display_name": "人口", "type": "integer" },
+	"recruit_rate": { "display_name": "征召率", "type": "float" },
+	"manpower_pool": { "display_name": "人力池", "type": "integer" },
+	"development": { "display_name": "发展度", "type": "integer" },
+	"city_defense": { "display_name": "城防", "type": "integer" },
+	"public_support": { "display_name": "民心", "type": "integer" },
+	"assets": { "display_name": "资产", "type": "integer" },
+	"gold_income": { "display_name": "金币收入", "type": "integer" },
+	"asset_income": { "display_name": "资产收入", "type": "integer" },
+	"maintenance": { "display_name": "维护费", "type": "integer" },
+	"action_points": { "display_name": "行动力", "type": "integer" }
+  },
+  "display_order": [
+	"action_points",
+	"population",
+	"recruit_rate",
+	"manpower_pool",
+	"development",
+	"city_defense",
+	"public_support",
+	"assets",
+	"gold_income",
+    "asset_income"
+  ]
+}

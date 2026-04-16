@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "round_parameters": {
+	"resources": {
+	  "action_points": {
+		"max": 6,
+		"reset_each_round": true
+	  },
+	  "population": {
+		"max": 999999,
+		"reset_each_round": false
+	  },
+	  "recruit_rate": {
+		"max": 1.0,
+		"reset_each_round": false
+	  },
+	  "manpower_pool": {
+		"max": 999999,
+		"reset_each_round": false
+	  },
+	  "development": {
+		"max": 999999,
+		"reset_each_round": false
+	  },
+	  "city_defense": {
+		"max": 999999,
+		"reset_each_round": false
+	  },
+	  "public_support": {
+		"max": 999999,
+		"reset_each_round": false
+	  },
+	  "assets": {
+		"max": 999999,
+		"reset_each_round": false
+	  },
+	  "gold_income": {
+		"max": 999999,
+		"reset_each_round": false
+	  },
+	  "asset_income": {
+		"max": 999999,
+		"reset_each_round": false
+	  }
+	}
+  },
+  "operations": [
+	{ "op": "add_from_resource", "target": "assets", "resource_id": "gold_income" },
+	{ "op": "add_from_resource", "target": "assets", "resource_id": "asset_income" },
+	{ "op": "add_percent_of", "target": "manpower_pool", "resource_id": "population", "percent_resource_id": "recruit_rate" }
+  ],
+  "outcome_modifiers": {
+	"victory": [
+	  { "op": "add", "target": "public_support", "value": 6 },
+	  { "op": "add", "target": "assets", "value": 40 }
+	],
+	"defeat": [
+	  { "op": "add", "target": "public_support", "value": -8 },
+	  { "op": "add_percent_of", "target": "assets", "resource_id": "assets", "percent": -0.1 }
+	],
+	"retreat": [
+	  { "op": "add", "target": "public_support", "value": -3 }
+	]
+  }
+}

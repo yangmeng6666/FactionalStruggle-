@@ -5,10 +5,14 @@ extends CharacterBody2D
 @export var max_hp: int = 100
 @export var selection_radius: float = 16.0
 @export var auto_engage_range: float = 180.0
+@export var attack_interval: float = 0.75
+@export var attack_damage: int = 25
+@export var attack_damage_frame: int = 4
+@export var armor: int = 0
+@export var defense: int = 0
+@export var injured_ratio: float = 1.0
+@export var tactic: String = "frontline"
 
-const ATTACK_INTERVAL := 0.75
-const ATTACK_DAMAGE := 25
-const ATTACK_DAMAGE_FRAME := 4
 const HURT_FLASH_DURATION := 0.12
 
 enum AnimationState {
@@ -72,14 +76,20 @@ func _physics_process(delta: float) -> void:
 	if _manual_move_override and navigation_agent.is_navigation_finished():
 		_manual_move_override = false
 
-	if not _manual_move_override and _has_valid_combat_target():
-		var target_position: Vector2 = _combat_target.global_position
-		if global_position.distance_to(target_position) <= _melee_range:
+	var has_combat_target := false
+	if not _manual_move_override:
+		has_combat_target = _has_valid_combat_target()
+		if has_combat_target:
+			var target_position: Vector2 = _combat_target.global_position
+			if global_position.distance_to(target_position) <= _melee_range:
+				stop_moving()
+				if _attack_cooldown <= 0.0:
+					_begin_attack(_combat_target)
+				return
+			navigation_agent.target_position = target_position
+		else:
 			stop_moving()
-			if _attack_cooldown <= 0.0:
-				_begin_attack(_combat_target)
 			return
-		navigation_agent.target_position = target_position
 
 	if navigation_agent.is_navigation_finished():
 		velocity = Vector2.ZERO
@@ -101,6 +111,25 @@ func set_team(value: String) -> void:
 	team = value
 	_update_visuals()
 	queue_redraw()
+
+
+func apply_unit_config(unit_config: Dictionary) -> void:
+	var battle: Dictionary = unit_config.get("battle", {})
+	max_hp = int(battle.get("max_hp", max_hp))
+	move_speed = float(battle.get("move_speed", move_speed))
+	selection_radius = float(battle.get("selection_radius", selection_radius))
+	auto_engage_range = float(battle.get("auto_engage_range", auto_engage_range))
+	attack_damage = int(battle.get("attack", attack_damage))
+	attack_interval = float(battle.get("attack_interval", attack_interval))
+	attack_damage_frame = int(battle.get("attack_damage_frame", attack_damage_frame))
+	armor = int(battle.get("armor", armor))
+	defense = int(battle.get("defense", defense))
+	injured_ratio = float(battle.get("injured_ratio", injured_ratio))
+	tactic = String(battle.get("tactic", tactic))
+	current_hp = max_hp
+	_melee_range = _read_melee_range()
+	queue_redraw()
+
 
 func set_move_target(target: Vector2) -> void:
 	if _is_dead:
@@ -134,7 +163,7 @@ func _begin_attack(target) -> void:
 		return
 	_pending_attack_target = target
 	_attack_damage_applied = false
-	_attack_cooldown = ATTACK_INTERVAL
+	_attack_cooldown = attack_interval
 	if _has_animation(&"attack"):
 		play_attack_animation()
 		return
@@ -261,7 +290,7 @@ func _apply_pending_attack_damage() -> void:
 	if _pending_attack_target.get("team") == team:
 		_pending_attack_target = null
 		return
-	_pending_attack_target.take_damage(ATTACK_DAMAGE)
+	_pending_attack_target.take_damage(attack_damage)
 	_pending_attack_target = null
 
 func _play_hurt_feedback() -> void:
@@ -301,7 +330,7 @@ func _read_melee_range() -> float:
 	return selection_radius
 
 func _on_sprite_frame_changed() -> void:
-	if _animation_state == AnimationState.ATTACK and sprite.animation == &"attack" and sprite.frame >= ATTACK_DAMAGE_FRAME:
+	if _animation_state == AnimationState.ATTACK and sprite.animation == &"attack" and sprite.frame >= attack_damage_frame:
 		_apply_pending_attack_damage()
 
 func _on_sprite_animation_finished() -> void:

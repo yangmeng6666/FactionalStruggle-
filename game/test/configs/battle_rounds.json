@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "rounds": {
+	"1": {
+	  "display_name": "边境遭遇战",
+	  "enemy_name": "流寇前锋",
+	  "enemy_army": [
+		{ "unit_id": "infantry", "count": 2 }
+	  ]
+	},
+	"2": {
+	  "display_name": "山道伏击战",
+	  "enemy_name": "山地劫掠者",
+	  "enemy_army": [
+		{ "unit_id": "infantry", "count": 2 },
+		{ "unit_id": "cavalry", "count": 1 }
+	  ]
+	},
+	"3": {
+	  "display_name": "荒原会战",
+	  "enemy_name": "荒原战团",
+	  "enemy_army": [
+		{ "unit_id": "infantry", "count": 3 },
+		{ "unit_id": "cavalry", "count": 1 }
+	  ]
+	}
+  }
+}

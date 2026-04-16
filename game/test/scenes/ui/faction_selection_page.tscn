@@ -1,0 +1,82 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/faction_selection_page.gd" id="1_faction_selection"]
+
+[node name="FactionSelectionPage" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("1_faction_selection")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0627451, 0.0941176, 0.12549, 1)
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -180.0
+offset_right = 240.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="PanelContainer/MarginContainer/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "选择势力"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="PanelContainer/MarginContainer/VBox"]
+layout_mode = 2
+text = "选择一个非中立势力开始新战役。"
+horizontal_alignment = 1
+
+autowrap_mode = 2
+
+[node name="FactionScroll" type="ScrollContainer" parent="PanelContainer/MarginContainer/VBox"]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="FactionList" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBox/FactionScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="ConfirmButton" type="Button" parent="PanelContainer/MarginContainer/VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "开始战役"
+disabled = true
+
+[node name="StatusLabel" type="Label" parent="PanelContainer/MarginContainer/VBox"]
+layout_mode = 2
+text = "请选择势力"
+horizontal_alignment = 1
+autowrap_mode = 2

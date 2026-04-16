@@ -1,0 +1,247 @@
+{
+  "version": 2,
+  "action_groups": {
+	"recruit_new_soldiers": {
+	  "display_name": "征募新兵",
+	  "phase": "management",
+	  "actions": [
+		"recruit_infantry",
+        "recruit_cavalry"
+	  ]
+	},
+	"get_money": {
+	  "display_name": "获取金钱",
+	  "phase": "management",
+	  "actions": [
+		"get_support",
+		"harsh_tax",
+        "extort"
+	  ]
+	},
+	"city_management": {
+	  "display_name": "城市经营",
+	  "phase": "management",
+	  "actions": [
+		"build_defense",
+		"invest_development",
+        "accept_refugees"
+	  ]
+	},
+	"support_relations": {
+	  "display_name": "外交支援",
+	  "phase": "management",
+	  "actions": [
+		"get_support",
+        "aid_church"
+	  ]
+	}
+  },
+  "group_order": [
+	"recruit_new_soldiers",
+	"get_money",
+	"city_management",
+    "support_relations"
+  ],
+  "actions": {
+	"recruit_infantry": {
+	  "display_name": "征募步兵",
+	  "phase": "management",
+	  "type": "recruit",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "cost": {
+		"manpower_pool": 30,
+		"assets": 20
+	  },
+	  "effects": [
+		{
+		  "op": "add_unit",
+		  "unit_id": "infantry",
+		  "count": 1
+		}
+	  ]
+	},
+	"recruit_cavalry": {
+	  "display_name": "征募骑兵",
+	  "phase": "management",
+	  "type": "recruit",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "cost": {
+		"manpower_pool": 45,
+		"assets": 50
+	  },
+	  "effects": [
+		{
+		  "op": "add_unit",
+		  "unit_id": "cavalry",
+		  "count": 1
+		}
+	  ]
+	},
+	"harsh_tax": {
+	  "display_name": "横征暴敛",
+	  "phase": "management",
+	  "type": "city",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "cost": {},
+	  "effects": [
+		{
+		  "target": "assets",
+		  "op": "add",
+		  "value": 80
+		},
+		{
+		  "target": "public_support",
+		  "op": "add",
+		  "value": -12
+		}
+	  ]
+	},
+	"extort": {
+	  "display_name": "敲诈勒索",
+	  "phase": "management",
+	  "type": "relation",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "cost": {},
+	  "effects": [
+		{
+		  "target": "assets",
+		  "op": "add",
+		  "value": 120
+		},
+		{
+		  "target": "neutral",
+		  "scope": "relations",
+		  "op": "add",
+		  "value": -15
+		},
+		{
+		  "target": "public_support",
+		  "op": "add",
+		  "value": -8
+		}
+	  ]
+	},
+	"get_support": {
+	  "display_name": "获取支持",
+	  "phase": "management",
+	  "type": "relation",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "cost": {
+		"assets": 20
+	  },
+	  "effects": [
+		{
+		  "target": "neutral",
+		  "scope": "relations",
+		  "op": "add",
+		  "value": 10
+		},
+		{
+		  "target": "public_support",
+		  "op": "add",
+		  "value": 5
+		}
+	  ]
+	},
+	"build_defense": {
+	  "display_name": "修筑城防",
+	  "phase": "management",
+	  "type": "city",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "cost": {
+		"assets": 50
+	  },
+	  "effects": [
+		{
+		  "target": "city_defense",
+		  "op": "add",
+		  "value": 5
+		}
+	  ]
+	},
+	"invest_development": {
+	  "display_name": "投资发展",
+	  "phase": "management",
+	  "type": "city",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "cost": {
+		"assets": 80
+	  },
+	  "effects": [
+		{
+		  "target": "development",
+		  "op": "add",
+		  "value": 3
+		},
+		{
+		  "target": "gold_income",
+		  "op": "add",
+		  "value": 5
+		}
+	  ]
+	},
+	"accept_refugees": {
+	  "display_name": "接纳流民",
+	  "phase": "management",
+	  "type": "city",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "cost": {
+		"assets": 20
+	  },
+	  "effects": [
+		{
+		  "target": "population",
+		  "op": "add",
+		  "value": 120
+		},
+		{
+		  "target": "manpower_pool",
+		  "op": "add",
+		  "value": 20
+		},
+		{
+		  "target": "public_support",
+		  "op": "add",
+		  "value": -3
+		}
+	  ]
+	},
+	"aid_church": {
+	  "display_name": "援助教廷",
+	  "phase": "management",
+	  "type": "relation",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "cost": {
+		"assets": 30
+	  },
+	  "effects": [
+		{
+		  "target": "church",
+		  "scope": "relations",
+		  "op": "add",
+		  "value": 10
+		}
+	  ]
+	}
+  },
+  "display_order": [
+	"recruit_infantry",
+	"recruit_cavalry",
+	"harsh_tax",
+	"extort",
+	"get_support",
+	"build_defense",
+	"invest_development",
+	"accept_refugees",
+    "aid_church"
+  ]
+}

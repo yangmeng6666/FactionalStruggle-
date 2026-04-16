@@ -49,13 +49,7 @@ navigation_polygon = SubResource("NavigationPolygon_battlefield")
 
 [node name="PlayerUnits" type="Node2D" parent="Units" unique_id=888775138]
 
-[node name="PlayerSquad01" parent="Units/PlayerUnits" unique_id=1230120265 instance=ExtResource("1_hmxj8")]
-position = Vector2(-430, 220)
-
 [node name="EnemyUnits" type="Node2D" parent="Units" unique_id=43536588]
-
-[node name="EnemySquad01" parent="Units/EnemyUnits" unique_id=960286623 instance=ExtResource("1_hmxj8")]
-position = Vector2(430, 220)
 
 [node name="Effects" type="Node2D" parent="." unique_id=596962846]
 

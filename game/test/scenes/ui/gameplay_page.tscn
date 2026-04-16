@@ -1,0 +1,161 @@
+[gd_scene load_steps=2 format=3 uid="uid://bpi2rq4pf1r24"]
+
+[ext_resource type="Script" path="res://scripts/ui/gameplay_page.gd" id="1_gameplay"]
+
+[node name="GameplayPage" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("1_gameplay")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.055, 0.075, 0.095, 1)
+
+[node name="MainPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = 24.0
+offset_right = -28.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MainPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="MainPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TopBar" type="Label" parent="MainPanel/MarginContainer/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "经营阶段"
+horizontal_alignment = 1
+
+[node name="Content" type="HBoxContainer" parent="MainPanel/MarginContainer/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="Left" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="ResourceTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Left"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "城市资源"
+
+[node name="ResourceList" type="GridContainer" parent="MainPanel/MarginContainer/VBox/Content/Left"]
+layout_mode = 2
+columns = 2
+
+[node name="RelationTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Left"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "关系"
+
+[node name="RelationList" type="GridContainer" parent="MainPanel/MarginContainer/VBox/Content/Left"]
+layout_mode = 2
+columns = 2
+
+[node name="Center" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 8
+
+[node name="ActionTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Center"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "行动"
+
+[node name="ActionScroll" type="ScrollContainer" parent="MainPanel/MarginContainer/VBox/Content/Center"]
+custom_minimum_size = Vector2(320, 150)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ActionList" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Center/ActionScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="RecruitTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Center"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "选项"
+
+[node name="RecruitScroll" type="ScrollContainer" parent="MainPanel/MarginContainer/VBox/Content/Center"]
+custom_minimum_size = Vector2(320, 130)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RecruitList" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Center/RecruitScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Right" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="ArmyTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Right"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "当前兵团"
+
+[node name="ArmyList" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Right"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="MoraleLabel" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Right"]
+layout_mode = 2
+text = "兵团士气：0 / 0"
+
+[node name="MaintenanceLabel" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Right"]
+layout_mode = 2
+text = "维护费：0"
+
+[node name="LogTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Right"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "操作日志"
+
+[node name="LogScroll" type="ScrollContainer" parent="MainPanel/MarginContainer/VBox/Content/Right"]
+custom_minimum_size = Vector2(260, 140)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LogList" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Right/LogScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Footer" type="HBoxContainer" parent="MainPanel/MarginContainer/VBox"]
+layout_mode = 2
+alignment = 2
+
+[node name="StartBattleButton" type="Button" parent="MainPanel/MarginContainer/VBox/Footer"]
+custom_minimum_size = Vector2(180, 44)
+layout_mode = 2
+text = "进入战斗"
+disabled = true

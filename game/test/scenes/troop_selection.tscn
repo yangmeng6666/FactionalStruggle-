@@ -31,24 +31,16 @@ theme_override_constants/separation = 16
 
 [node name="Title" type="Label" parent="PanelContainer/VBox"]
 layout_mode = 2
-text = "Select Your Troops"
+text = "选择你的部队"
 horizontal_alignment = 1
 
 [node name="TroopList" type="VBoxContainer" parent="PanelContainer/VBox"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="TroopOption0" type="Button" parent="PanelContainer/VBox/TroopList"]
-layout_mode = 2
-text = "Infantry Squad"
-
-[node name="TroopOption1" type="Button" parent="PanelContainer/VBox/TroopList"]
-layout_mode = 2
-text = "Cavalry Squad"
-
 [node name="ConfirmButton" type="Button" parent="PanelContainer/VBox"]
 layout_mode = 2
-text = "Enter Battle"
+text = "进入战斗"
 
 [node name="StatusLabel" type="Label" parent="."]
 layout_mode = 1
@@ -63,5 +55,5 @@ offset_right = 200.0
 offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 0
-text = "Choose a troop to deploy"
+text = "请选择要部署的部队"
 horizontal_alignment = 1

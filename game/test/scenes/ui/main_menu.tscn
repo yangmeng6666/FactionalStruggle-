@@ -1,0 +1,65 @@
+[gd_scene format=3 uid="uid://dwnk45mwgybuc"]
+
+[ext_resource type="Script" uid="uid://r5ed67yiw02a" path="res://scripts/ui/main_menu.gd" id="1_main_menu"]
+
+[node name="MainMenu" type="Control" unique_id=937597634]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main_menu")
+
+[node name="Background" type="ColorRect" parent="." unique_id=2022862755]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0627451, 0.0941176, 0.12549, 1)
+
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=1432653000]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -220.0
+offset_top = -155.0
+offset_right = 220.0
+offset_bottom = 155.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="PanelContainer" unique_id=1333342222]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="PanelContainer/VBox" unique_id=2101034706]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "幸存者"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="PanelContainer/VBox" unique_id=988291290]
+layout_mode = 2
+text = "守住城池，指挥你的部队。"
+horizontal_alignment = 1
+
+[node name="StartButton" type="Button" parent="PanelContainer/VBox" unique_id=298731064]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "开始游戏"
+
+[node name="QuitButton" type="Button" parent="PanelContainer/VBox" unique_id=103410596]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "退出"
+
+[node name="StatusLabel" type="Label" parent="PanelContainer/VBox" unique_id=352929387]
+layout_mode = 2
+text = "选择你的军队，在战场上生存下来。"
+horizontal_alignment = 1

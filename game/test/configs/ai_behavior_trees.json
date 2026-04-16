@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "behavior_trees": {
+	"default_management_ai": {
+	  "rules": [
+		{
+		  "condition": {
+			"type": "resource_below",
+			"resource_id": "assets",
+			"value": 120
+		  },
+		  "candidate_action_ids": [
+			"harsh_tax",
+			"extort",
+            "get_support"
+		  ]
+		},
+		{
+		  "condition": {
+			"type": "army_count_below",
+			"unit_id": "infantry",
+			"value": 3
+		  },
+		  "candidate_action_ids": [
+            "recruit_infantry"
+		  ]
+		},
+		{
+		  "condition": {
+			"type": "always"
+		  },
+		  "use_remaining_allowed_actions": true
+		}
+	  ]
+	}
+  }
+}

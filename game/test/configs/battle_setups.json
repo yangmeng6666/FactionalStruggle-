@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "setups": {
+	"default_field_battle": {
+	  "display_name": "默认野战",
+	  "battle_scene_id": "field",
+	  "player_spawn_anchor": [40, -220],
+	  "enemy_spawn_anchor": [190, -220],
+	  "default_player_army": [
+		{ "unit_id": "infantry", "count": 3 }
+	  ],
+	  "default_enemy_army": [
+		{ "unit_id": "infantry", "count": 3 }
+	  ]
+	}
+  }
+}

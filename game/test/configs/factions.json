@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "factions": {
+	"castle_lord": {
+	  "display_name": "城主",
+	  "behavior_tree_id": "default_management_ai",
+	  "initial_city": {
+		"population": 1000,
+		"recruit_rate": 0.1,
+		"manpower_pool": 100,
+		"development": 10,
+		"city_defense": 20,
+		"public_support": 50,
+		"assets": 200,
+		"gold_income": 50,
+		"asset_income": 10,
+		"action_points": 3
+	  },
+	  "initial_army": [
+		{
+		  "unit_id": "infantry",
+		  "count": 3
+		}
+	  ],
+	  "relations": {
+		"church": 0,
+		"wizard": 0,
+		"neutral": 0
+	  },
+	  "allowed_action_ids": [
+		"recruit_infantry",
+		"recruit_cavalry",
+		"get_support",
+		"build_defense",
+		"invest_development",
+		"accept_refugees",
+        "harsh_tax"
+	  ]
+	},
+	"church": {
+	  "display_name": "教廷",
+	  "behavior_tree_id": "default_management_ai",
+	  "initial_city": {
+		"population": 800,
+		"recruit_rate": 0.08,
+		"manpower_pool": 80,
+		"development": 8,
+		"city_defense": 18,
+		"public_support": 55,
+		"assets": 120,
+		"gold_income": 40,
+		"asset_income": 8,
+		"action_points": 2
+	  },
+	  "initial_army": [
+		{
+		  "unit_id": "infantry",
+		  "count": 2
+		}
+	  ],
+	  "relations": {
+		"castle_lord": 0,
+		"wizard": -10,
+		"neutral": 5
+	  },
+	  "allowed_action_ids": [
+		"recruit_infantry",
+		"recruit_cavalry",
+		"get_support",
+		"build_defense",
+		"invest_development",
+		"accept_refugees",
+        "aid_church"
+	  ]
+	},
+	"wizard": {
+	  "display_name": "巫师",
+	  "behavior_tree_id": "default_management_ai",
+	  "initial_city": {
+		"population": 600,
+		"recruit_rate": 0.06,
+		"manpower_pool": 60,
+		"development": 12,
+		"city_defense": 12,
+		"public_support": 45,
+		"assets": 140,
+		"gold_income": 45,
+		"asset_income": 12,
+		"action_points": 2
+	  },
+	  "initial_army": [
+		{
+		  "unit_id": "infantry",
+		  "count": 1
+		},
+		{
+		  "unit_id": "cavalry",
+		  "count": 1
+		}
+	  ],
+	  "relations": {
+		"castle_lord": 0,
+		"church": -10,
+		"neutral": 0
+	  },
+	  "allowed_action_ids": [
+		"recruit_infantry",
+		"recruit_cavalry",
+		"get_support",
+		"build_defense",
+		"invest_development",
+		"accept_refugees",
+        "extort"
+	  ]
+	},
+	"neutral": {
+	  "display_name": "中立",
+	  "behavior_tree_id": "default_management_ai",
+	  "initial_city": {
+		"population": 500,
+		"recruit_rate": 0.05,
+		"manpower_pool": 50,
+		"development": 7,
+		"city_defense": 10,
+		"public_support": 50,
+		"assets": 90,
+		"gold_income": 30,
+		"asset_income": 6,
+		"action_points": 2
+	  },
+	  "initial_army": [
+		{
+		  "unit_id": "infantry",
+		  "count": 1
+		}
+	  ],
+	  "relations": {
+		"castle_lord": 0,
+		"church": 5,
+		"wizard": 0
+	  },
+	  "allowed_action_ids": [
+		"recruit_infantry",
+		"recruit_cavalry",
+		"get_support",
+		"build_defense",
+		"invest_development",
+		"accept_refugees",
+        "extort"
+	  ]
+	}
+  }
+}

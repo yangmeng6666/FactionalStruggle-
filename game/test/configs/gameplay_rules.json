@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "player_faction_id": "castle_lord",
+  "starting_round": 1,
+  "phases": [
+	{ "id": "management", "display_name": "经营" },
+	{ "id": "battle", "display_name": "战斗" }
+  ],
+  "battle": {
+	"default_scene_id": "field",
+	"scenes": {
+	  "field": {
+		"scene_path": "res://scenes/battle_root.tscn",
+		"min_corps_morale": 1000,
+		"default_battle_setup_id": "default_field_battle",
+		"target_refresh_interval": 0.25
+	  }
+	}
+  },
+  "management": {
+	"action_order": [
+	  "castle_lord",
+	  "church",
+	  "wizard",
+	  "neutral"
+	]
+  }
+}

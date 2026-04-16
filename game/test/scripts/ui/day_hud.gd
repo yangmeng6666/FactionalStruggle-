@@ -3,7 +3,7 @@ extends Control
 var _game_session = null
 var _label: Label
 var _selected_count: int = 0
-var _phase: String = "day"
+var _phase: String = ""
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -42,4 +42,17 @@ func _on_phase_changed(phase: String) -> void:
 func _update_text() -> void:
 	if _label == null:
 		return
-	_label.text = "Phase: %s\nSelected: %d" % [_phase.capitalize(), _selected_count]
+	var phase_name := _get_phase_display_name(_phase)
+	if phase_name == "":
+		_label.text = "已选中：%d" % _selected_count
+		return
+	_label.text = "阶段：%s\n已选中：%d" % [phase_name, _selected_count]
+
+
+func _get_phase_display_name(phase: String) -> String:
+	if _game_session == null:
+		return ""
+	var config = _game_session.get("config")
+	if config == null or not config.has_method("get_phase_display_name"):
+		return ""
+	return String(config.get_phase_display_name(phase))

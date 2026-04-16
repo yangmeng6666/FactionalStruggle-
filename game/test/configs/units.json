@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "units": {
+	"infantry": {
+	  "display_name": "步兵",
+	  "source_sheet": "兵种列表",
+	  "source_note": "MVP defaults translated from the prototype where the workbook does not define a runtime field.",
+	  "tags": ["human", "melee", "infantry"],
+	  "campaign": {
+		"morale": 250,
+		"upkeep": 2,
+		"manpower_cost": 30,
+		"asset_cost": 20
+	  },
+	  "battle": {
+		"scene": "res://scenes/units/squad.tscn",
+		"max_hp": 100,
+		"move_speed": 120.0,
+		"selection_radius": 16.0,
+		"auto_engage_range": 180.0,
+		"attack": 25,
+		"attack_interval": 0.75,
+		"attack_damage_frame": 4,
+		"defense": 0,
+		"armor": 0,
+		"injured_ratio": 1.0,
+		"tactic": "frontline",
+		"size": 1
+	  }
+	},
+	"cavalry": {
+	  "display_name": "骑兵",
+	  "source_sheet": "兵种列表",
+	  "source_note": "MVP defaults keep the existing prototype cavalry behavior data-driven.",
+	  "tags": ["human", "melee", "cavalry"],
+	  "campaign": {
+		"morale": 400,
+		"upkeep": 4,
+		"manpower_cost": 45,
+		"asset_cost": 50
+	  },
+	  "battle": {
+		"scene": "res://scenes/units/squad.tscn",
+		"max_hp": 80,
+		"move_speed": 200.0,
+		"selection_radius": 24.0,
+		"auto_engage_range": 210.0,
+		"attack": 35,
+		"attack_interval": 0.9,
+		"attack_damage_frame": 4,
+		"defense": 0,
+		"armor": 0,
+		"injured_ratio": 1.0,
+		"tactic": "flanker",
+		"size": 1
+	  }
+	}
+  }
+}
