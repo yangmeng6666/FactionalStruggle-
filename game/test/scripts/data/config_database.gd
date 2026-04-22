@@ -40,6 +40,38 @@ func get_resource_order() -> Array:
 	return _data.get("resources", {}).get("display_order", [])
 
 
+func get_city_resource_order() -> Array:
+	var configured: Array = _data.get("resources", {}).get("city_display_order", [])
+	if not configured.is_empty():
+		return configured.duplicate()
+	return _filter_resource_order_by_scope("city")
+
+
+func get_faction_resource_order() -> Array:
+	var configured: Array = _data.get("resources", {}).get("faction_display_order", [])
+	if not configured.is_empty():
+		return configured.duplicate()
+	return _filter_resource_order_by_scope("faction")
+
+
+func get_special_resource_order() -> Array:
+	var configured: Array = _data.get("resources", {}).get("special_display_order", [])
+	if not configured.is_empty():
+		return configured.duplicate()
+	return _filter_resource_order_by_scope("special")
+
+
+func get_derived_resource_order() -> Array:
+	var configured: Array = _data.get("resources", {}).get("derived_display_order", [])
+	if not configured.is_empty():
+		return configured.duplicate()
+	return _filter_resource_order_by_scope("derived")
+
+
+func get_resource_scope(resource_id: String) -> String:
+	return String(get_resource(resource_id).get("scope", "city"))
+
+
 func get_faction(faction_id: String) -> Dictionary:
 	return _get_nested("factions", "factions", faction_id)
 
@@ -71,6 +103,26 @@ func get_faction_allowed_action_ids(faction_id: String) -> Array:
 
 func get_faction_display_name(faction_id: String) -> String:
 	return String(get_faction(faction_id).get("display_name", faction_id))
+
+
+func get_faction_initial_special_resources(faction_id: String) -> Dictionary:
+	return get_faction(faction_id).get("special_resources", {}).duplicate(true)
+
+
+func get_faction_initial_management_resources(faction_id: String) -> Dictionary:
+	return get_faction(faction_id).get("management_resources", {}).duplicate(true)
+
+
+func get_faction_initial_support_base(faction_id: String) -> int:
+	return int(get_faction(faction_id).get("support_base", 0))
+
+
+func get_faction_initial_owned_assets(faction_id: String) -> int:
+	return int(get_faction(faction_id).get("owned_assets", 0))
+
+
+func get_management_shared_city_resources() -> Dictionary:
+	return _data.get("gameplay_rules", {}).get("management", {}).get("shared_city_resources", {}).duplicate(true)
 
 
 func get_unit(unit_id: String) -> Dictionary:
@@ -341,6 +393,28 @@ func _validate() -> void:
 		if default_battle_setup_id == "" or get_battle_setup(default_battle_setup_id).is_empty():
 			_errors.append("Battle scene %s references unknown default battle setup %s" % [scene_id, default_battle_setup_id])
 
+	var shared_city_resources := get_management_shared_city_resources()
+	if shared_city_resources.is_empty():
+		_errors.append("Gameplay rules are missing management.shared_city_resources")
+	for resource_id_variant in shared_city_resources.keys():
+		var shared_resource_id := String(resource_id_variant)
+		if get_resource(shared_resource_id).is_empty():
+			_errors.append("Shared city resources reference unknown resource %s" % shared_resource_id)
+		elif get_resource_scope(shared_resource_id) != "city":
+			_errors.append("Shared city resource %s must use city scope" % shared_resource_id)
+
+	for faction_id in get_management_action_order():
+		if get_faction(String(faction_id)).is_empty():
+			_errors.append("Management action order references unknown faction %s" % faction_id)
+
+	for resource_id in _data.get("resources", {}).get("resources", {}).keys():
+		var resource: Dictionary = get_resource(String(resource_id))
+		var scope := String(resource.get("scope", ""))
+		if scope == "":
+			_errors.append("Resource %s is missing scope" % resource_id)
+		elif not ["city", "faction", "special", "derived"].has(scope):
+			_errors.append("Resource %s has invalid scope %s" % [resource_id, scope])
+
 	for faction_id in _data.get("factions", {}).get("factions", {}).keys():
 		var faction: Dictionary = get_faction(String(faction_id))
 		for action_id in faction.get("allowed_action_ids", []):
@@ -353,6 +427,7 @@ func _validate() -> void:
 		var tree_id := String(faction.get("behavior_tree_id", ""))
 		if tree_id == "" or get_behavior_tree(tree_id).is_empty():
 			_errors.append("Faction %s references unknown behavior tree %s" % [faction_id, tree_id])
+		_validate_faction_resources(String(faction_id), faction)
 
 	for group_id in _data.get("actions", {}).get("action_groups", {}).keys():
 		var group: Dictionary = get_action_group(String(group_id))
@@ -373,8 +448,11 @@ func _validate() -> void:
 		for unit_id in action.get("unit_options", []):
 			if get_unit(String(unit_id)).is_empty():
 				_errors.append("Action %s references unknown unit %s" % [action_id, unit_id])
+		for resource_id_variant in action.get("cost", {}).keys():
+			_validate_resource_reference("Action %s cost" % action_id, String(resource_id_variant), false)
 		for effect in action.get("effects", []):
 			_validate_effect_unit_reference(String(action_id), effect)
+			_validate_effect_resource_reference(String(action_id), effect)
 
 	for tree_id in _data.get("ai_behavior_trees", {}).get("behavior_trees", {}).keys():
 		var tree: Dictionary = get_behavior_tree(String(tree_id))
@@ -400,9 +478,12 @@ func _validate() -> void:
 	if get_round_resource_rule("action_points").is_empty():
 		_errors.append("Round parameters are missing action_points resource rule")
 	for resource_id_variant in round_resource_rules.keys():
-		var resource_id := String(resource_id_variant)
-		if get_resource(resource_id).is_empty():
-			_errors.append("Round parameters reference unknown resource %s" % resource_id)
+		_validate_resource_reference("Round parameters", String(resource_id_variant), false)
+	for operation in _data.get("round_settlement", {}).get("operations", []):
+		_validate_settlement_operation("Settlement operation", operation)
+	for outcome in _data.get("round_settlement", {}).get("outcome_modifiers", {}).keys():
+		for operation in _data.get("round_settlement", {}).get("outcome_modifiers", {}).get(outcome, []):
+			_validate_settlement_operation("Settlement outcome %s" % String(outcome), operation)
 
 
 func _validate_effect_unit_reference(action_id: String, effect) -> void:
@@ -414,6 +495,19 @@ func _validate_effect_unit_reference(action_id: String, effect) -> void:
 	var unit_id := String(effect.get("unit_id", ""))
 	if unit_id != "" and get_unit(unit_id).is_empty():
 		_errors.append("Action %s effect references unknown unit %s" % [action_id, unit_id])
+
+
+func _validate_effect_resource_reference(action_id: String, effect) -> void:
+	if not effect is Dictionary:
+		return
+	var op := String(effect.get("op", ""))
+	if op == "add_unit" or op == "add_army_unit":
+		return
+	if String(effect.get("scope", "")) == "relations":
+		return
+	var target := String(effect.get("target", ""))
+	if target != "":
+		_validate_resource_reference("Action %s effect" % action_id, target, true)
 
 
 func _validate_behavior_tree_template(tree_id: String, tree: Dictionary) -> void:
@@ -429,11 +523,26 @@ func _validate_behavior_tree_template(tree_id: String, tree: Dictionary) -> void
 			var condition = rule.get("condition", {})
 			if not condition is Dictionary or String(condition.get("type", "")) == "":
 				_errors.append("Behavior tree %s contains invalid rule condition" % tree_id)
+			else:
+				_validate_behavior_condition_resource_reference(tree_id, condition)
 			for action_id in rule.get("candidate_action_ids", []):
 				if get_action(String(action_id)).is_empty():
 					_errors.append("Behavior tree %s references unknown candidate action %s" % [tree_id, action_id])
 		return
 	_validate_behavior_tree_node(tree_id, tree.get("root", {}))
+
+
+func _validate_behavior_condition_resource_reference(tree_id: String, condition: Dictionary) -> void:
+	match String(condition.get("type", "")):
+		"resource_below", "resource_at_least":
+			var resource_id := String(condition.get("resource_id", ""))
+			if resource_id == "":
+				_errors.append("Behavior tree %s condition is missing resource_id" % tree_id)
+				return
+			_validate_resource_reference("Behavior tree %s condition" % tree_id, resource_id, false)
+			var explicit_scope := String(condition.get("scope", ""))
+			if explicit_scope != "" and explicit_scope != get_resource_scope(resource_id):
+				_errors.append("Behavior tree %s condition scope does not match resource %s" % [tree_id, resource_id])
 
 
 func _validate_behavior_tree_node(tree_id: String, node) -> void:
@@ -446,6 +555,61 @@ func _validate_behavior_tree_node(tree_id: String, node) -> void:
 			_errors.append("Behavior tree %s references unknown action %s" % [tree_id, action_id])
 	for child in node.get("children", []):
 		_validate_behavior_tree_node(tree_id, child)
+
+
+func _validate_faction_resources(faction_id: String, faction: Dictionary) -> void:
+	var management_resources: Dictionary = faction.get("management_resources", {})
+	if management_resources.is_empty():
+		_errors.append("Faction %s is missing management_resources" % faction_id)
+	for resource_id_variant in management_resources.keys():
+		var management_resource_id := String(resource_id_variant)
+		_validate_resource_reference("Faction %s management resource" % faction_id, management_resource_id, false)
+		if get_resource_scope(management_resource_id) != "faction":
+			_errors.append("Faction %s management resource %s must use faction scope" % [faction_id, management_resource_id])
+	for resource_id_variant in faction.get("special_resources", {}).keys():
+		var resource_id := String(resource_id_variant)
+		_validate_resource_reference("Faction %s special resource" % faction_id, resource_id, false)
+		if get_resource_scope(resource_id) != "special":
+			_errors.append("Faction %s special resource %s must use special scope" % [faction_id, resource_id])
+	if faction.has("initial_city"):
+		_errors.append("Faction %s still uses deprecated initial_city" % faction_id)
+	if faction.has("support_base") and get_resource("support_base").is_empty():
+		_errors.append("Faction %s references missing support_base resource" % faction_id)
+	if faction.has("owned_assets") and get_resource("owned_assets").is_empty():
+		_errors.append("Faction %s references missing owned_assets resource" % faction_id)
+
+
+func _validate_settlement_operation(context: String, operation) -> void:
+	if not operation is Dictionary:
+		return
+	var op := String(operation.get("op", ""))
+	var target := String(operation.get("target", ""))
+	if target != "":
+		_validate_resource_reference(context, target, false)
+	if op == "add_from_resource" or op == "add_percent_of" or op == "reset_from_initial":
+		var resource_id := String(operation.get("resource_id", ""))
+		if resource_id != "":
+			_validate_resource_reference(context, resource_id, false)
+	var percent_resource_id := String(operation.get("percent_resource_id", ""))
+	if percent_resource_id != "":
+		_validate_resource_reference(context, percent_resource_id, false)
+
+
+func _validate_resource_reference(context: String, resource_id: String, allow_derived: bool) -> void:
+	if get_resource(resource_id).is_empty():
+		_errors.append("%s references unknown resource %s" % [context, resource_id])
+		return
+	if not allow_derived and get_resource_scope(resource_id) == "derived":
+		_errors.append("%s cannot write derived resource %s" % [context, resource_id])
+
+
+func _filter_resource_order_by_scope(scope: String) -> Array:
+	var result: Array = []
+	for resource_id_variant in get_resource_order():
+		var resource_id := String(resource_id_variant)
+		if get_resource_scope(resource_id) == scope:
+			result.append(resource_id)
+	return result
 
 
 func _require_section(config_key: String, section_key: String) -> void:

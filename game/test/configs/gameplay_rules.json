@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "player_faction_id": "castle_lord",
   "starting_round": 1,
   "phases": [
@@ -18,11 +18,17 @@
 	}
   },
   "management": {
+	"shared_city_resources": {
+	  "population": 1000,
+	  "recruit_rate": 0.1,
+	  "development": 10,
+	  "city_defense": 20
+	},
 	"action_order": [
 	  "castle_lord",
 	  "church",
 	  "wizard",
-	  "neutral"
+      "neutral"
 	]
   }
 }

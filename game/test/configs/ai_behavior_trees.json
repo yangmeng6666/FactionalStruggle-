@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "behavior_trees": {
 	"default_management_ai": {
 	  "rules": [
@@ -7,6 +7,7 @@
 		  "condition": {
 			"type": "resource_below",
 			"resource_id": "assets",
+			"scope": "faction",
 			"value": 120
 		  },
 		  "candidate_action_ids": [

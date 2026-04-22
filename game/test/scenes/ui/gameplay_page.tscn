@@ -1,6 +1,20 @@
-[gd_scene load_steps=2 format=3 uid="uid://bpi2rq4pf1r24"]
+[gd_scene load_steps=3 format=3 uid="uid://bpi2rq4pf1r24"]
 
 [ext_resource type="Script" path="res://scripts/ui/gameplay_page.gd" id="1_gameplay"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_actioncue"]
+bg_color = Color(0.204, 0.267, 0.165, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.768, 0.859, 0.533, 0.95)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.2)
+shadow_size = 6
 
 [node name="GameplayPage" type="Control"]
 layout_mode = 3
@@ -20,6 +34,58 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.055, 0.075, 0.095, 1)
+
+[node name="ResourceHoverPanel" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 300.0
+offset_bottom = 340.0
+custom_minimum_size = Vector2(280, 0)
+mouse_filter = 0
+z_index = 10
+
+[node name="MarginContainer" type="MarginContainer" parent="ResourceHoverPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="HoverContent" type="VBoxContainer" parent="ResourceHoverPanel/MarginContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(256, 0)
+theme_override_constants/separation = 8
+
+[node name="HoverTitle" type="Label" parent="ResourceHoverPanel/MarginContainer/HoverContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "资源概览"
+
+[node name="HoverScroll" type="ScrollContainer" parent="ResourceHoverPanel/MarginContainer/HoverContent"]
+custom_minimum_size = Vector2(0, 260)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 0
+
+[node name="HoverInner" type="VBoxContainer" parent="ResourceHoverPanel/MarginContainer/HoverContent/HoverScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="HoverResourceList" type="GridContainer" parent="ResourceHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner"]
+layout_mode = 2
+columns = 2
+
+[node name="HoverRelationTitle" type="Label" parent="ResourceHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "关系"
+
+[node name="HoverRelationList" type="GridContainer" parent="ResourceHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner"]
+layout_mode = 2
+columns = 2
 
 [node name="MainPanel" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -50,6 +116,34 @@ theme_override_font_sizes/font_size = 24
 text = "经营阶段"
 horizontal_alignment = 1
 
+[node name="ActionCue" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 240.0
+offset_top = 56.0
+offset_right = 880.0
+offset_bottom = 112.0
+custom_minimum_size = Vector2(360, 0)
+modulate = Color(1, 1, 1, 0)
+mouse_filter = 2
+z_index = 20
+
+theme_override_styles/panel = SubResource("StyleBoxFlat_actioncue")
+
+[node name="ActionCueMargin" type="MarginContainer" parent="ActionCue"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="ActionCueLabel" type="Label" parent="ActionCue/ActionCueMargin"]
+layout_mode = 2
+text = ""
+autowrap_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="Content" type="HBoxContainer" parent="MainPanel/MarginContainer/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -63,18 +157,33 @@ theme_override_constants/separation = 8
 [node name="ResourceTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Left"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "城市资源"
+text = "资源概览"
 
-[node name="ResourceList" type="GridContainer" parent="MainPanel/MarginContainer/VBox/Content/Left"]
+[node name="ResourceFactionSelector" type="HBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Left"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="LeftScroll" type="ScrollContainer" parent="MainPanel/MarginContainer/VBox/Content/Left"]
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeftContent" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Left/LeftScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="ResourceList" type="GridContainer" parent="MainPanel/MarginContainer/VBox/Content/Left/LeftScroll/LeftContent"]
 layout_mode = 2
 columns = 2
 
-[node name="RelationTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Left"]
+[node name="RelationTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Left/LeftScroll/LeftContent"]
+visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "关系"
 
-[node name="RelationList" type="GridContainer" parent="MainPanel/MarginContainer/VBox/Content/Left"]
+[node name="RelationList" type="GridContainer" parent="MainPanel/MarginContainer/VBox/Content/Left/LeftScroll/LeftContent"]
 layout_mode = 2
 columns = 2
 

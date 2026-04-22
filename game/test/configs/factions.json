@@ -1,20 +1,20 @@
 {
-  "version": 1,
+  "version": 2,
   "factions": {
 	"castle_lord": {
 	  "display_name": "城主",
 	  "behavior_tree_id": "default_management_ai",
-	  "initial_city": {
-		"population": 1000,
-		"recruit_rate": 0.1,
+	  "management_resources": {
+		"action_points": 6,
 		"manpower_pool": 100,
-		"development": 10,
-		"city_defense": 20,
-		"public_support": 50,
 		"assets": 200,
 		"gold_income": 50,
-		"asset_income": 10,
-		"action_points": 3
+		"asset_income": 10
+	  },
+	  "support_base": 50,
+	  "owned_assets": 60,
+	  "special_resources": {
+		"king_favor": 20
 	  },
 	  "initial_army": [
 		{
@@ -40,17 +40,17 @@
 	"church": {
 	  "display_name": "教廷",
 	  "behavior_tree_id": "default_management_ai",
-	  "initial_city": {
-		"population": 800,
-		"recruit_rate": 0.08,
-		"manpower_pool": 80,
-		"development": 8,
-		"city_defense": 18,
-		"public_support": 55,
-		"assets": 120,
-		"gold_income": 40,
-		"asset_income": 8,
-		"action_points": 2
+	  "management_resources": {
+		"action_points": 6,
+		"manpower_pool": 100,
+		"assets": 200,
+		"gold_income": 50,
+		"asset_income": 10
+	  },
+	  "support_base": 55,
+	  "owned_assets": 50,
+	  "special_resources": {
+		"faith": 24
 	  },
 	  "initial_army": [
 		{
@@ -76,17 +76,17 @@
 	"wizard": {
 	  "display_name": "巫师",
 	  "behavior_tree_id": "default_management_ai",
-	  "initial_city": {
-		"population": 600,
-		"recruit_rate": 0.06,
-		"manpower_pool": 60,
-		"development": 12,
-		"city_defense": 12,
-		"public_support": 45,
-		"assets": 140,
-		"gold_income": 45,
-		"asset_income": 12,
-		"action_points": 2
+	  "management_resources": {
+		"action_points": 6,
+		"manpower_pool": 100,
+		"assets": 200,
+		"gold_income": 50,
+		"asset_income": 10
+	  },
+	  "support_base": 45,
+	  "owned_assets": 40,
+	  "special_resources": {
+		"mana_stones": 18
 	  },
 	  "initial_army": [
 		{
@@ -116,18 +116,16 @@
 	"neutral": {
 	  "display_name": "中立",
 	  "behavior_tree_id": "default_management_ai",
-	  "initial_city": {
-		"population": 500,
-		"recruit_rate": 0.05,
-		"manpower_pool": 50,
-		"development": 7,
-		"city_defense": 10,
-		"public_support": 50,
-		"assets": 90,
-		"gold_income": 30,
-		"asset_income": 6,
-		"action_points": 2
+	  "management_resources": {
+		"action_points": 6,
+		"manpower_pool": 100,
+		"assets": 200,
+		"gold_income": 50,
+		"asset_income": 10
 	  },
+	  "support_base": 50,
+	  "owned_assets": 20,
+	  "special_resources": {},
 	  "initial_army": [
 		{
 		  "unit_id": "infantry",

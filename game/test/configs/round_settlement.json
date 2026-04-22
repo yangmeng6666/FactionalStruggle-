@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "round_parameters": {
 	"resources": {
 	  "action_points": {
@@ -26,10 +26,6 @@
 		"max": 999999,
 		"reset_each_round": false
 	  },
-	  "public_support": {
-		"max": 999999,
-		"reset_each_round": false
-	  },
 	  "assets": {
 		"max": 999999,
 		"reset_each_round": false
@@ -39,6 +35,26 @@
 		"reset_each_round": false
 	  },
 	  "asset_income": {
+		"max": 999999,
+		"reset_each_round": false
+	  },
+	  "support_base": {
+		"max": 999999,
+		"reset_each_round": false
+	  },
+	  "owned_assets": {
+		"max": 999999,
+		"reset_each_round": false
+	  },
+	  "king_favor": {
+		"max": 999999,
+		"reset_each_round": false
+	  },
+	  "faith": {
+		"max": 999999,
+		"reset_each_round": false
+	  },
+	  "mana_stones": {
 		"max": 999999,
 		"reset_each_round": false
 	  }
@@ -51,15 +67,17 @@
   ],
   "outcome_modifiers": {
 	"victory": [
-	  { "op": "add", "target": "public_support", "value": 6 },
+	  { "op": "add", "target": "support_base", "value": 6 },
+	  { "op": "add", "target": "owned_assets", "value": 8 },
 	  { "op": "add", "target": "assets", "value": 40 }
 	],
 	"defeat": [
-	  { "op": "add", "target": "public_support", "value": -8 },
+	  { "op": "add", "target": "support_base", "value": -8 },
+	  { "op": "add_percent_of", "target": "owned_assets", "resource_id": "owned_assets", "percent": -0.1 },
 	  { "op": "add_percent_of", "target": "assets", "resource_id": "assets", "percent": -0.1 }
 	],
 	"retreat": [
-	  { "op": "add", "target": "public_support", "value": -3 }
+	  { "op": "add", "target": "support_base", "value": -3 }
 	]
   }
 }

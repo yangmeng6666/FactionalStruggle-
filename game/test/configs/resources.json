@@ -1,28 +1,67 @@
 {
-  "version": 1,
+  "version": 2,
   "resources": {
-	"population": { "display_name": "人口", "type": "integer" },
-	"recruit_rate": { "display_name": "征召率", "type": "float" },
-	"manpower_pool": { "display_name": "人力池", "type": "integer" },
-	"development": { "display_name": "发展度", "type": "integer" },
-	"city_defense": { "display_name": "城防", "type": "integer" },
-	"public_support": { "display_name": "民心", "type": "integer" },
-	"assets": { "display_name": "资产", "type": "integer" },
-	"gold_income": { "display_name": "金币收入", "type": "integer" },
-	"asset_income": { "display_name": "资产收入", "type": "integer" },
-	"maintenance": { "display_name": "维护费", "type": "integer" },
-	"action_points": { "display_name": "行动力", "type": "integer" }
+	"population": { "display_name": "人口", "type": "integer", "scope": "city" },
+	"recruit_rate": { "display_name": "征召率", "type": "float", "scope": "city" },
+	"manpower_pool": { "display_name": "人力池", "type": "integer", "scope": "faction" },
+	"development": { "display_name": "发展度", "type": "integer", "scope": "city" },
+	"city_defense": { "display_name": "城防", "type": "integer", "scope": "city" },
+	"assets": { "display_name": "当前金钱", "type": "integer", "scope": "faction" },
+	"gold_income": { "display_name": "金币收入", "type": "integer", "scope": "faction" },
+	"asset_income": { "display_name": "资产收入", "type": "integer", "scope": "faction" },
+	"action_points": { "display_name": "行动力", "type": "integer", "scope": "faction" },
+	"support_base": { "display_name": "支持基础", "type": "integer", "scope": "faction" },
+	"owned_assets": { "display_name": "所属资产", "type": "integer", "scope": "faction" },
+	"king_favor": { "display_name": "王恩", "type": "integer", "scope": "special" },
+	"faith": { "display_name": "信仰", "type": "integer", "scope": "special" },
+	"mana_stones": { "display_name": "魔石", "type": "integer", "scope": "special" },
+	"support_share": { "display_name": "支持占比", "type": "float", "scope": "derived" },
+	"ownership_share": { "display_name": "资产占比", "type": "float", "scope": "derived" },
+	"war_expectation": { "display_name": "战争预期", "type": "integer", "scope": "derived" },
+	"maintenance": { "display_name": "维护费", "type": "integer", "scope": "derived" }
   },
   "display_order": [
-	"action_points",
 	"population",
 	"recruit_rate",
-	"manpower_pool",
 	"development",
 	"city_defense",
-	"public_support",
+	"action_points",
+	"manpower_pool",
 	"assets",
 	"gold_income",
-    "asset_income"
+	"asset_income",
+	"support_base",
+	"owned_assets",
+	"king_favor",
+	"faith",
+	"mana_stones",
+	"support_share",
+	"ownership_share",
+    "war_expectation"
+  ],
+  "city_display_order": [
+	"population",
+	"recruit_rate",
+	"development",
+    "city_defense"
+  ],
+  "faction_display_order": [
+	"action_points",
+	"manpower_pool",
+	"assets",
+	"gold_income",
+	"asset_income",
+	"support_base",
+    "owned_assets"
+  ],
+  "special_display_order": [
+	"king_favor",
+	"faith",
+    "mana_stones"
+  ],
+  "derived_display_order": [
+	"support_share",
+	"ownership_share",
+    "war_expectation"
   ]
 }
