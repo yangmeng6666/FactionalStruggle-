@@ -15,7 +15,8 @@
 	  "actions": [
 		"get_support",
 		"harsh_tax",
-        "extort"
+		"extort",
+        "coerce_tribute"
 	  ]
 	},
 	"city_management": {
@@ -24,6 +25,7 @@
 	  "actions": [
 		"build_defense",
 		"invest_development",
+		"capital_investment",
         "accept_refugees"
 	  ]
 	},
@@ -32,7 +34,8 @@
 	  "phase": "management",
 	  "actions": [
 		"get_support",
-        "aid_church"
+		"aid_church",
+        "diplomatic_aid"
 	  ]
 	}
   },
@@ -256,6 +259,218 @@
 		  "value": 8
 		}
 	  ]
+	},
+	"propaganda_campaign": {
+	  "display_name": "宣传动员",
+	  "phase": "management",
+	  "type": "city",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "cost": {
+		"assets": {
+		  "type": "resource_percent",
+		  "resource_id": "assets",
+		  "percent": 0.08,
+		  "base": 10,
+		  "round": true
+		}
+	  },
+	  "effects": [
+		{
+		  "target": "support_base",
+		  "op": "add",
+		  "value": {
+			"type": "derived_percent",
+			"resource_id": "development",
+			"derived_id": "ownership_share",
+			"multiplier": 0.2,
+			"base": 4,
+			"round": true
+		  }
+		},
+		{
+		  "target": "neutral",
+		  "scope": "relations",
+		  "op": "add",
+		  "value": 6
+		}
+	  ]
+	},
+	"capital_investment": {
+	  "display_name": "追加投资",
+	  "phase": "management",
+	  "type": "city",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "cost": {
+		"assets": {
+		  "type": "resource_percent",
+		  "resource_id": "assets",
+		  "percent": 0.18,
+		  "base": 60,
+		  "round": true
+		}
+	  },
+	  "effects": [
+		{
+		  "target": "development",
+		  "op": "add",
+		  "value": {
+			"type": "resource_percent",
+			"resource_id": "assets",
+			"percent": 0.015,
+			"base": 2,
+			"round": true
+		  }
+		},
+		{
+		  "target": "asset_income",
+		  "op": "add",
+		  "value": {
+			"type": "derived_percent",
+			"resource_id": "development",
+			"derived_id": "support_share",
+			"multiplier": 0.12,
+			"base": 2,
+			"round": true
+		  }
+		}
+	  ]
+	},
+	"coerce_tribute": {
+	  "display_name": "逼取贡赋",
+	  "phase": "management",
+	  "type": "relation",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "requires_target": true,
+	  "target_filter": "other_factions",
+	  "cost": {},
+	  "effects": [
+		{
+		  "recipient": "actor",
+		  "target": "assets",
+		  "op": "add",
+		  "value": {
+			"type": "relation_scale",
+			"target_faction_id_from_payload": "target_faction_id",
+			"positive_multiplier": 2,
+			"negative_multiplier": 1,
+			"base": 50,
+			"round": true
+		  }
+		},
+		{
+		  "recipient": "target_faction",
+		  "target": "assets",
+		  "op": "add",
+		  "value": -30
+		},
+		{
+		  "recipient": "actor",
+		  "scope": "relations",
+		  "target_from_payload": "target_faction_id",
+		  "op": "add",
+		  "value": -18
+		},
+		{
+		  "recipient": "target_faction",
+		  "scope": "relations",
+		  "target_faction_id": "neutral",
+		  "op": "add",
+		  "value": -10
+		},
+		{
+		  "recipient": "actor",
+		  "target": "support_base",
+		  "op": "add",
+		  "value": -6
+		}
+	  ]
+	},
+	"diplomatic_aid": {
+	  "display_name": "外交援助",
+	  "phase": "management",
+	  "type": "relation",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "requires_target": true,
+	  "target_filter": "other_factions",
+	  "cost": {
+		"assets": 40
+	  },
+	  "effects": [
+		{
+		  "recipient": "actor",
+		  "scope": "relations",
+		  "target_from_payload": "target_faction_id",
+		  "op": "add",
+		  "value": 12
+		},
+		{
+		  "recipient": "target_faction",
+		  "scope": "relations",
+		  "target_faction_id": "neutral",
+		  "op": "add",
+		  "value": 8
+		},
+		{
+		  "recipient": "target_faction",
+		  "target": "assets",
+		  "op": "add",
+		  "value": 20
+		},
+		{
+		  "recipient": "actor",
+		  "target": "support_base",
+		  "op": "add",
+		  "value": 4
+		}
+	  ]
+	},
+	"resettle_refugees": {
+	  "display_name": "安置流民",
+	  "phase": "management",
+	  "type": "city",
+	  "ap_cost": 1,
+	  "ap_increment": 1,
+	  "cost": {
+		"assets": {
+		  "type": "per_use",
+		  "base": 18,
+		  "increment": 8
+		}
+	  },
+	  "effects": [
+		{
+		  "target": "population",
+		  "op": "add",
+		  "value": {
+			"type": "resource_percent",
+			"resource_id": "development",
+			"percent": 4.0,
+			"base": 90,
+			"round": true
+		  }
+		},
+		{
+		  "target": "manpower_pool",
+		  "op": "add",
+		  "value": {
+			"type": "derived_percent",
+			"resource_id": "population",
+			"derived_id": "support_share",
+			"multiplier": 0.015,
+			"base": 12,
+			"round": true
+		  }
+		},
+		{
+		  "target": "support_base",
+		  "op": "add",
+		  "value": 3
+		}
+	  ]
 	}
   },
   "display_order": [
@@ -264,9 +479,14 @@
 	"harsh_tax",
 	"extort",
 	"get_support",
+	"propaganda_campaign",
 	"build_defense",
 	"invest_development",
+	"capital_investment",
 	"accept_refugees",
-    "aid_church"
+	"resettle_refugees",
+	"aid_church",
+	"coerce_tribute",
+    "diplomatic_aid"
   ]
 }

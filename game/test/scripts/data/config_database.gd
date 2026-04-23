@@ -445,14 +445,18 @@ func _validate() -> void:
 
 	for action_id in _data.get("actions", {}).get("actions", {}).keys():
 		var action: Dictionary = get_action(String(action_id))
+		_validate_action_schema(String(action_id), action)
 		for unit_id in action.get("unit_options", []):
 			if get_unit(String(unit_id)).is_empty():
 				_errors.append("Action %s references unknown unit %s" % [action_id, unit_id])
 		for resource_id_variant in action.get("cost", {}).keys():
 			_validate_resource_reference("Action %s cost" % action_id, String(resource_id_variant), false)
+			_validate_value_spec("Action %s cost %s" % [action_id, resource_id_variant], action.get("cost", {}).get(resource_id_variant))
 		for effect in action.get("effects", []):
 			_validate_effect_unit_reference(String(action_id), effect)
 			_validate_effect_resource_reference(String(action_id), effect)
+			if effect is Dictionary:
+				_validate_value_spec("Action %s effect value" % action_id, effect.get("value", 0))
 
 	for tree_id in _data.get("ai_behavior_trees", {}).get("behavior_trees", {}).keys():
 		var tree: Dictionary = get_behavior_tree(String(tree_id))
@@ -486,6 +490,56 @@ func _validate() -> void:
 			_validate_settlement_operation("Settlement outcome %s" % String(outcome), operation)
 
 
+func _validate_action_schema(action_id: String, action: Dictionary) -> void:
+	if action.has("requires_target") and not (action.get("requires_target") is bool):
+		_errors.append("Action %s requires_target must be boolean" % action_id)
+	if bool(action.get("requires_target", false)):
+		var target_filter := String(action.get("target_filter", "other_factions"))
+		if not ["other_factions", "player_faction", "all_factions", ""].has(target_filter):
+			_errors.append("Action %s has invalid target_filter %s" % [action_id, target_filter])
+	for effect in action.get("effects", []):
+		if not effect is Dictionary:
+			continue
+		var recipient := String(effect.get("recipient", "actor"))
+		if not ["actor", "target_faction", ""].has(recipient):
+			_errors.append("Action %s effect has invalid recipient %s" % [action_id, recipient])
+		if recipient == "target_faction" and not bool(action.get("requires_target", false)):
+			_errors.append("Action %s effect uses target_faction recipient without requires_target" % action_id)
+		for payload_field in ["target_from_payload", "target_faction_id_from_payload", "unit_id_from_payload", "count_from_payload"]:
+			if effect.has(payload_field) and String(effect.get(payload_field, "")) == "":
+				_errors.append("Action %s effect has empty %s" % [action_id, payload_field])
+		if effect.has("target_faction_id") and get_faction(String(effect.get("target_faction_id", ""))).is_empty():
+			_errors.append("Action %s effect references unknown target_faction_id %s" % [action_id, effect.get("target_faction_id", "")])
+
+
+func _validate_value_spec(context: String, value) -> void:
+	if not value is Dictionary:
+		return
+	var spec_type := String(value.get("type", "literal"))
+	match spec_type:
+		"literal":
+			pass
+		"resource_percent":
+			_validate_resource_reference(context, String(value.get("resource_id", "")), true)
+		"derived_percent":
+			_validate_resource_reference(context, String(value.get("resource_id", "")), false)
+			_validate_resource_reference(context, String(value.get("derived_id", "")), true)
+			if get_resource_scope(String(value.get("derived_id", ""))) != "derived":
+				_errors.append("%s derived_id must use derived scope" % context)
+		"per_use":
+			var action_id := String(value.get("action_id", ""))
+			if action_id != "" and get_action(action_id).is_empty():
+				_errors.append("%s references unknown action %s" % [context, action_id])
+		"relation_scale":
+			var target_faction_id := String(value.get("target_faction_id", ""))
+			if target_faction_id != "" and get_faction(target_faction_id).is_empty():
+				_errors.append("%s references unknown target_faction_id %s" % [context, target_faction_id])
+			if value.has("target_faction_id_from_payload") and String(value.get("target_faction_id_from_payload", "")) == "":
+				_errors.append("%s has empty target_faction_id_from_payload" % context)
+		_:
+			_errors.append("%s has unsupported value spec type %s" % [context, spec_type])
+
+
 func _validate_effect_unit_reference(action_id: String, effect) -> void:
 	if not effect is Dictionary:
 		return
@@ -504,6 +558,10 @@ func _validate_effect_resource_reference(action_id: String, effect) -> void:
 	if op == "add_unit" or op == "add_army_unit":
 		return
 	if String(effect.get("scope", "")) == "relations":
+		var relation_target := String(effect.get("target", effect.get("target_faction_id", "")))
+		if relation_target != "":
+			if get_faction(relation_target).is_empty():
+				_errors.append("Action %s relation effect references unknown faction %s" % [action_id, relation_target])
 		return
 	var target := String(effect.get("target", ""))
 	if target != "":
@@ -586,13 +644,41 @@ func _validate_settlement_operation(context: String, operation) -> void:
 	var target := String(operation.get("target", ""))
 	if target != "":
 		_validate_resource_reference(context, target, false)
-	if op == "add_from_resource" or op == "add_percent_of" or op == "reset_from_initial":
-		var resource_id := String(operation.get("resource_id", ""))
-		if resource_id != "":
-			_validate_resource_reference(context, resource_id, false)
+	match op:
+		"add", "reset_from_initial":
+			pass
+		"add_from_resource", "add_percent_of", "add_scaled_resource", "add_share_of_city_resource":
+			var resource_id := String(operation.get("resource_id", ""))
+			if resource_id != "":
+				_validate_resource_reference(context, resource_id, false)
+		"add_from_derived":
+			var derived_id := String(operation.get("derived_id", ""))
+			if derived_id != "":
+				_validate_resource_reference(context, derived_id, true)
+				if get_resource_scope(derived_id) != "derived":
+					_errors.append("%s derived_id %s must use derived scope" % [context, derived_id])
+		"add_from_relation":
+			var relation_faction_id := String(operation.get("relation_faction_id", ""))
+			if relation_faction_id != "" and get_faction(relation_faction_id).is_empty():
+				_errors.append("%s references unknown relation faction %s" % [context, relation_faction_id])
+		_:
+			_errors.append("%s uses unsupported settlement op %s" % [context, op])
 	var percent_resource_id := String(operation.get("percent_resource_id", ""))
 	if percent_resource_id != "":
 		_validate_resource_reference(context, percent_resource_id, false)
+	var scale_resource_id := String(operation.get("scale_resource_id", ""))
+	if scale_resource_id != "":
+		_validate_resource_reference(context, scale_resource_id, false)
+	var scale_derived_id := String(operation.get("scale_derived_id", ""))
+	if scale_derived_id != "":
+		_validate_resource_reference(context, scale_derived_id, true)
+		if get_resource_scope(scale_derived_id) != "derived":
+			_errors.append("%s scale_derived_id %s must use derived scope" % [context, scale_derived_id])
+	var share_id := String(operation.get("share_id", ""))
+	if share_id != "":
+		_validate_resource_reference(context, share_id, true)
+		if get_resource_scope(share_id) != "derived":
+			_errors.append("%s share_id %s must use derived scope" % [context, share_id])
 
 
 func _validate_resource_reference(context: String, resource_id: String, allow_derived: bool) -> void:

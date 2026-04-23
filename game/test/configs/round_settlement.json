@@ -61,15 +61,20 @@
 	}
   },
   "operations": [
-	{ "op": "add_from_resource", "target": "assets", "resource_id": "gold_income" },
-	{ "op": "add_from_resource", "target": "assets", "resource_id": "asset_income" },
-	{ "op": "add_percent_of", "target": "manpower_pool", "resource_id": "population", "percent_resource_id": "recruit_rate" }
+	{ "op": "add_share_of_city_resource", "target": "assets", "resource_id": "development", "share_id": "ownership_share", "multiplier": 0.6, "round": true },
+	{ "op": "add_share_of_city_resource", "target": "assets", "resource_id": "population", "share_id": "support_share", "multiplier": 0.04, "round": true },
+	{ "op": "add_scaled_resource", "target": "assets", "resource_id": "gold_income", "scale_derived_id": "city_influence", "multiplier": 0.02, "round": true },
+	{ "op": "add_scaled_resource", "target": "assets", "resource_id": "asset_income", "scale_derived_id": "support_share", "multiplier": 1.0, "round": true },
+	{ "op": "add_share_of_city_resource", "target": "manpower_pool", "resource_id": "population", "share_id": "recruit_share", "multiplier": 0.06, "round": true },
+	{ "op": "add_scaled_resource", "target": "manpower_pool", "resource_id": "population", "scale_resource_id": "recruit_rate", "scale_derived_id": "support_share", "multiplier": 0.02, "round": true },
+	{ "op": "add_from_derived", "target": "support_base", "derived_id": "relation_pressure", "multiplier": -0.25, "round": true },
+	{ "op": "add_from_relation", "target": "support_base", "relation_faction_id": "neutral", "multiplier": 0.1, "round": true }
   ],
   "outcome_modifiers": {
 	"victory": [
 	  { "op": "add", "target": "support_base", "value": 6 },
 	  { "op": "add", "target": "owned_assets", "value": 8 },
-	  { "op": "add", "target": "assets", "value": 40 }
+	  { "op": "add_from_derived", "target": "assets", "derived_id": "city_influence", "multiplier": 0.15, "round": true }
 	],
 	"defeat": [
 	  { "op": "add", "target": "support_base", "value": -8 },
@@ -77,7 +82,8 @@
 	  { "op": "add_percent_of", "target": "assets", "resource_id": "assets", "percent": -0.1 }
 	],
 	"retreat": [
-	  { "op": "add", "target": "support_base", "value": -3 }
+	  { "op": "add", "target": "support_base", "value": -3 },
+	  { "op": "add_from_derived", "target": "assets", "derived_id": "readiness_margin", "multiplier": -0.1, "round": true }
 	]
   }
 }

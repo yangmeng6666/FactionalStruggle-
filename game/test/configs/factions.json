@@ -33,7 +33,12 @@
 		"get_support",
 		"build_defense",
 		"invest_development",
+		"capital_investment",
 		"accept_refugees",
+		"resettle_refugees",
+		"propaganda_campaign",
+		"diplomatic_aid",
+		"coerce_tribute",
         "harsh_tax"
 	  ]
 	},
@@ -69,8 +74,12 @@
 		"get_support",
 		"build_defense",
 		"invest_development",
+		"capital_investment",
 		"accept_refugees",
-        "aid_church"
+		"resettle_refugees",
+		"propaganda_campaign",
+		"aid_church",
+        "diplomatic_aid"
 	  ]
 	},
 	"wizard": {
@@ -109,7 +118,12 @@
 		"get_support",
 		"build_defense",
 		"invest_development",
+		"capital_investment",
 		"accept_refugees",
+		"resettle_refugees",
+		"propaganda_campaign",
+		"diplomatic_aid",
+		"coerce_tribute",
         "extort"
 	  ]
 	},
@@ -144,6 +158,9 @@
 		"build_defense",
 		"invest_development",
 		"accept_refugees",
+		"propaganda_campaign",
+		"resettle_refugees",
+		"coerce_tribute",
         "extort"
 	  ]
 	}

@@ -346,6 +346,107 @@ func get_management_resource_snapshot(faction_id: String) -> Dictionary:
 	}
 
 
+func get_management_projection(faction_id: String, pending_action_id: String = "", payload: Dictionary = {}) -> Dictionary:
+	if campaign_state.is_empty() or not _ensure_config_loaded():
+		return {}
+	var target_faction_id := faction_id
+	if target_faction_id == "" or not campaign_state.get("factions", {}).has(target_faction_id):
+		target_faction_id = _get_player_faction_id()
+	var current_snapshot := get_management_resource_snapshot(target_faction_id)
+	var resolved_action: Dictionary = {}
+	var immediate_snapshot := current_snapshot.duplicate(true)
+	var action_delta := {}
+	var original_state := campaign_state.duplicate(true)
+	if pending_action_id != "":
+		var simulation_state := original_state.duplicate(true)
+		campaign_state = simulation_state
+		resolved_action = _resolve_action_for_faction(target_faction_id, pending_action_id, payload)
+		if not resolved_action.is_empty() and _can_apply_resolved_action_for_faction(target_faction_id, resolved_action):
+			_apply_resolved_action_for_faction(target_faction_id, resolved_action, false, true)
+			immediate_snapshot = get_management_resource_snapshot(target_faction_id)
+			action_delta = _diff_resource_snapshots(current_snapshot, immediate_snapshot)
+		campaign_state = original_state
+	var settlement_state := original_state.duplicate(true)
+	campaign_state = settlement_state
+	if not action_delta.is_empty():
+		_apply_resolved_action_for_faction(target_faction_id, resolved_action, false, true)
+	var before_settlement := get_management_resource_snapshot(target_faction_id)
+	var settlement_breakdown: Array[String] = []
+	_apply_settlement_resource_change(target_faction_id, "assets", -_get_total_maintenance_for_faction(target_faction_id), settlement_breakdown, _get_resource_display_name("maintenance"))
+	_apply_settlement_operations(target_faction_id, config.get_round_settlement().get("operations", []), settlement_breakdown)
+	var after_settlement := get_management_resource_snapshot(target_faction_id)
+	var settlement_delta := _diff_resource_snapshots(before_settlement, after_settlement)
+	campaign_state = original_state
+	return {
+		"faction_id": target_faction_id,
+		"current": current_snapshot,
+		"resolved_action": resolved_action,
+		"action_delta": action_delta,
+		"settlement_delta": settlement_delta,
+		"projected": after_settlement,
+		"settlement_summary": _build_settlement_summary_from_delta(settlement_delta),
+		"settlement_breakdown": settlement_breakdown,
+	}
+
+
+func get_action_target_options(action_id: String, faction_id: String = "") -> Array:
+	if campaign_state.is_empty() or not _ensure_config_loaded():
+		return []
+	var actor_id := faction_id if faction_id != "" else _get_player_faction_id()
+	return _get_action_target_options(config.get_action(action_id), actor_id)
+
+
+func _diff_resource_snapshots(before: Dictionary, after: Dictionary) -> Dictionary:
+	var sections := ["city_resources", "faction_resources", "special_resources", "derived_metrics", "relations", "resources"]
+	var result := {}
+	for section_variant in sections:
+		var section := String(section_variant)
+		var before_values: Dictionary = before.get(section, {})
+		var after_values: Dictionary = after.get(section, {})
+		var delta := {}
+		for key_variant in after_values.keys():
+			var key := String(key_variant)
+			var after_value = after_values.get(key, 0)
+			var before_value = before_values.get(key, 0)
+			if after_value is float or before_value is float:
+				var float_delta := float(after_value) - float(before_value)
+				if absf(float_delta) > 0.0001:
+					delta[key] = float_delta
+			else:
+				var int_delta := int(after_value) - int(before_value)
+				if int_delta != 0:
+					delta[key] = int_delta
+		if not delta.is_empty():
+			result[section] = delta
+	return result
+
+
+func _get_action_target_options(action: Dictionary, actor_faction_id: String) -> Array:
+	if action.is_empty() or not bool(action.get("requires_target", false)):
+		return []
+	var result: Array = []
+	var target_filter := String(action.get("target_filter", "other_factions"))
+	for faction_id_variant in campaign_state.get("factions", {}).keys():
+		var faction_id := String(faction_id_variant)
+		match target_filter:
+			"other_factions":
+				if faction_id == actor_faction_id:
+					continue
+			"player_faction":
+				if faction_id != _get_player_faction_id():
+					continue
+			"all_factions", "":
+				pass
+			_:
+				continue
+		result.append({
+			"id": faction_id,
+			"display_name": config.get_faction_display_name(faction_id),
+			"relation": int(_get_faction_state(actor_faction_id).get("relations", {}).get(faction_id, 0)),
+		})
+	return result
+
+
 func set_selected_squads(squads: Array) -> void:
 	_cleanup_selected_squads()
 
@@ -457,18 +558,33 @@ func _can_faction_select_action(faction_id: String, action_id: String) -> bool:
 
 
 func _can_apply_action_for_faction(faction_id: String, action_id: String, payload: Dictionary = {}) -> bool:
-	var action: Dictionary = config.get_action(action_id)
-	if action.is_empty():
+	var resolved_action := _resolve_action_for_faction(faction_id, action_id, payload)
+	return _can_apply_resolved_action_for_faction(faction_id, resolved_action)
+
+
+func _can_apply_resolved_action_for_faction(faction_id: String, resolved_action: Dictionary) -> bool:
+	if resolved_action.is_empty():
 		return false
-	if String(action.get("phase", "")) != String(campaign_state.get("phase", "")):
+	if String(resolved_action.get("phase", "")) != String(campaign_state.get("phase", "")):
 		return false
 	if faction_id != _get_current_management_actor_id():
 		return false
-	if not _can_faction_select_action(faction_id, action_id):
+	if not _can_faction_select_action(faction_id, String(resolved_action.get("id", ""))):
 		return false
-	if _get_management_action_points(faction_id) < _get_effective_action_cost(action_id):
+	if bool(resolved_action.get("requires_target", false)):
+		var target_faction_id := String(resolved_action.get("payload", {}).get("target_faction_id", ""))
+		if target_faction_id == "":
+			return false
+		var target_is_valid := false
+		for option in _get_action_target_options(resolved_action, faction_id):
+			if option is Dictionary and String(option.get("id", "")) == target_faction_id:
+				target_is_valid = true
+				break
+		if not target_is_valid:
+			return false
+	if _get_management_action_points(faction_id) < int(resolved_action.get("ap_cost", 0)):
 		return false
-	var full_cost := _build_action_cost(action, payload)
+	var full_cost: Dictionary = resolved_action.get("cost", {})
 	for resource_id in full_cost.keys():
 		if _get_resource_value_for_faction(faction_id, String(resource_id)) < int(full_cost[resource_id]):
 			return false
@@ -476,56 +592,62 @@ func _can_apply_action_for_faction(faction_id: String, action_id: String, payloa
 
 
 func _apply_action_for_faction(faction_id: String, action_id: String, payload: Dictionary = {}, add_failure_log: bool = false) -> bool:
-	var action: Dictionary = config.get_action(action_id)
-	if action.is_empty():
+	var resolved_action := _resolve_action_for_faction(faction_id, action_id, payload)
+	if resolved_action.is_empty():
 		if add_failure_log:
 			_add_campaign_log("未知行动：%s。" % action_id)
 		return false
-
-	if String(action.get("phase", "")) != String(campaign_state.get("phase", "")):
+	if not _can_apply_resolved_action_for_faction(faction_id, resolved_action):
 		if add_failure_log:
-			_add_campaign_log("当前阶段不能执行%s。" % action.get("display_name", action_id))
+			if bool(resolved_action.get("requires_target", false)) and String(resolved_action.get("payload", {}).get("target_faction_id", "")) == "":
+				_add_campaign_log("执行%s需要选择目标。" % resolved_action.get("display_name", action_id))
+			elif _get_management_action_points(faction_id) < int(resolved_action.get("ap_cost", 0)):
+				_add_campaign_log("行动力不足，无法执行%s。" % resolved_action.get("display_name", action_id))
+			else:
+				for resource_id in resolved_action.get("cost", {}).keys():
+					if _get_resource_value_for_faction(faction_id, String(resource_id)) < int(resolved_action.get("cost", {}).get(resource_id, 0)):
+						_add_campaign_log("%s不足，无法执行%s。" % [_get_resource_display_name(String(resource_id)), resolved_action.get("display_name", action_id)])
+						break
 		return false
+	return _apply_resolved_action_for_faction(faction_id, resolved_action, add_failure_log, false)
 
-	var faction_state := _get_faction_state(faction_id)
-	if faction_state.is_empty():
+
+func _apply_resolved_action_for_faction(faction_id: String, resolved_action: Dictionary, add_failure_log: bool = false, is_projection: bool = false) -> bool:
+	if resolved_action.is_empty():
 		return false
-	if faction_id != _get_current_management_actor_id():
-		if add_failure_log:
-			_add_campaign_log("当前轮到%s行动。" % _get_management_actor_display_name(_get_current_management_actor_id()))
-		return false
-
-	if not _can_faction_select_action(faction_id, action_id):
-		if add_failure_log:
-			_add_campaign_log("当前阵营不能执行%s。" % action.get("display_name", action_id))
-		return false
-
-	var ap_cost := _get_effective_action_cost(action_id)
-	if _get_management_action_points(faction_id) < ap_cost:
-		if add_failure_log:
-			_add_campaign_log("行动力不足，无法执行%s。" % action.get("display_name", action_id))
-		return false
-
-	var full_cost := _build_action_cost(action, payload)
-	for resource_id in full_cost.keys():
-		if _get_resource_value_for_faction(faction_id, String(resource_id)) < int(full_cost[resource_id]):
-			if add_failure_log:
-				_add_campaign_log("%s不足，无法执行%s。" % [_get_resource_display_name(String(resource_id)), action.get("display_name", action_id)])
-			return false
-
+	var ap_cost := int(resolved_action.get("ap_cost", 0))
 	_consume_management_action_points(faction_id, ap_cost)
-	_increment_round_action_usage(action_id)
-	for resource_id in full_cost.keys():
-		_add_resource_value_for_faction(faction_id, String(resource_id), -int(full_cost[resource_id]))
+	if not is_projection:
+		_increment_round_action_usage(String(resolved_action.get("id", "")))
+	for resource_id in resolved_action.get("cost", {}).keys():
+		_add_resource_value_for_faction(faction_id, String(resource_id), -int(resolved_action.get("cost", {}).get(resource_id, 0)))
 		_apply_resource_caps_to_faction(faction_id, [String(resource_id)])
-
-	_apply_effects(faction_id, action.get("effects", []), payload)
-	_add_campaign_log(_build_action_log(faction_id, action, payload, ap_cost))
+	_apply_effects(faction_id, resolved_action.get("effects", []), resolved_action.get("payload", {}))
+	if not is_projection:
+		_add_campaign_log(_build_action_log(faction_id, resolved_action, resolved_action.get("payload", {}), ap_cost))
 	return true
 
 
-func _build_action_cost(action: Dictionary, payload: Dictionary) -> Dictionary:
-	var cost: Dictionary = action.get("cost", {}).duplicate(true)
+func _resolve_action_for_faction(faction_id: String, action_id: String, payload: Dictionary = {}) -> Dictionary:
+	var action: Dictionary = config.get_action(action_id)
+	if action.is_empty():
+		return {}
+	var resolved_payload := payload.duplicate(true)
+	resolved_payload["action_id"] = action_id
+	var resolved := action.duplicate(true)
+	resolved["id"] = action_id
+	resolved["payload"] = resolved_payload
+	resolved["ap_cost"] = _get_effective_action_cost(action_id)
+	resolved["cost"] = _build_action_cost(resolved, resolved_payload, faction_id)
+	resolved["effects"] = _resolve_effects_for_action(faction_id, resolved, resolved_payload)
+	return resolved
+
+
+func _build_action_cost(action: Dictionary, payload: Dictionary, faction_id: String = "") -> Dictionary:
+	var actor_id := faction_id if faction_id != "" else _get_player_faction_id()
+	var cost: Dictionary = {}
+	for resource_id_variant in action.get("cost", {}).keys():
+		cost[String(resource_id_variant)] = _resolve_value_spec(actor_id, action.get("cost", {}).get(resource_id_variant), payload)
 	var recruit_unit_id := _get_recruit_action_unit_id(action, payload)
 	if recruit_unit_id == "":
 		return cost
@@ -535,6 +657,70 @@ func _build_action_cost(action: Dictionary, payload: Dictionary) -> Dictionary:
 	if unit_campaign.has("asset_cost"):
 		cost["assets"] = int(unit_campaign.get("asset_cost", 0))
 	return cost
+
+
+func _resolve_effects_for_action(faction_id: String, action: Dictionary, payload: Dictionary) -> Array:
+	var result: Array = []
+	for effect_variant in action.get("effects", []):
+		if not effect_variant is Dictionary:
+			continue
+		var effect: Dictionary = effect_variant.duplicate(true)
+		effect["resolved_value"] = _resolve_value_spec(faction_id, effect.get("value", 0), payload)
+		var recipient := String(effect.get("recipient", "actor"))
+		effect["resolved_recipient_faction_id"] = _resolve_effect_recipient_faction_id(faction_id, recipient, payload)
+		var resolved_target := String(effect.get("target", effect.get("unit_id_from_payload", "")))
+		if effect.has("target_from_payload"):
+			resolved_target = String(payload.get(String(effect["target_from_payload"]), ""))
+		elif recipient == "target_faction" and String(effect.get("scope", "resources")) == "relations" and String(effect.get("target_faction_id", "")) != "":
+			resolved_target = String(effect.get("target_faction_id", ""))
+		effect["resolved_target"] = resolved_target
+		result.append(effect)
+	return result
+
+
+func _resolve_effect_recipient_faction_id(actor_faction_id: String, recipient: String, payload: Dictionary) -> String:
+	match recipient:
+		"actor", "":
+			return actor_faction_id
+		"target_faction":
+			return String(payload.get("target_faction_id", ""))
+	return actor_faction_id
+
+
+func _resolve_value_spec(faction_id: String, spec, payload: Dictionary = {}):
+	if spec is int or spec is float:
+		return spec
+	if not spec is Dictionary:
+		return int(spec)
+	var spec_type := String(spec.get("type", "literal"))
+	match spec_type:
+		"resource_percent":
+			var base_resource = _get_resource_value_for_faction(faction_id, String(spec.get("resource_id", "")))
+			var value = float(spec.get("base", 0)) + float(base_resource) * float(spec.get("percent", 0.0))
+			return _finalize_resolved_value(value, bool(spec.get("round", true)))
+		"derived_percent":
+			var resource_value = _get_resource_value_for_faction(faction_id, String(spec.get("resource_id", "")))
+			var derived_value = _build_derived_metrics_for_faction(faction_id).get(String(spec.get("derived_id", "")), 0.0)
+			var combined = float(spec.get("base", 0)) + float(resource_value) * float(derived_value) * float(spec.get("multiplier", 1.0))
+			return _finalize_resolved_value(combined, bool(spec.get("round", true)))
+		"per_use":
+			var uses := _get_round_action_usage_count(String(spec.get("action_id", payload.get("action_id", ""))))
+			if uses <= 0:
+				uses = _get_round_action_usage_count(String(payload.get("action_id", "")))
+			return int(spec.get("base", 0)) + int(spec.get("increment", 0)) * uses
+		"relation_scale":
+			var target_faction_id := String(spec.get("target_faction_id", payload.get("target_faction_id", "")))
+			if spec.has("target_faction_id_from_payload"):
+				target_faction_id = String(payload.get(String(spec.get("target_faction_id_from_payload", "target_faction_id")), ""))
+			var relation_value := int(_get_faction_state(faction_id).get("relations", {}).get(target_faction_id, 0))
+			var relation_factor := float(spec.get("positive_multiplier", 1.0)) if relation_value >= 0 else float(spec.get("negative_multiplier", 1.0))
+			var relation_scaled := float(spec.get("base", 0)) + absf(float(relation_value)) * relation_factor
+			return _finalize_resolved_value(relation_scaled, bool(spec.get("round", true)))
+	return int(spec.get("value", spec.get("base", 0)))
+
+
+func _finalize_resolved_value(value: float, should_round: bool) -> int:
+	return int(round(value)) if should_round else int(value)
 
 
 func _get_recruit_action_unit_id(action: Dictionary, payload: Dictionary) -> String:
@@ -552,40 +738,42 @@ func _get_recruit_action_unit_id(action: Dictionary, payload: Dictionary) -> Str
 
 
 func _apply_effects(faction_id: String, effects: Array, payload: Dictionary) -> void:
-	for effect in effects:
-		if not effect is Dictionary:
+	for effect_variant in effects:
+		if not effect_variant is Dictionary:
+			continue
+		var effect: Dictionary = effect_variant
+		var recipient_faction_id := String(effect.get("resolved_recipient_faction_id", faction_id))
+		if recipient_faction_id == "":
 			continue
 		var scope := String(effect.get("scope", "resources"))
-		var target := String(effect.get("target", effect.get("unit_id_from_payload", "")))
-		if effect.has("target_from_payload"):
-			target = String(payload.get(String(effect["target_from_payload"]), ""))
-
+		var target := String(effect.get("resolved_target", effect.get("target", "")))
 		match String(effect.get("op", "")):
 			"add":
 				if target == "":
 					continue
-				var value := int(effect.get("value", 0))
+				var value := int(effect.get("resolved_value", effect.get("value", 0)))
 				if scope == "relations":
-					var relations: Dictionary = _get_faction_state(faction_id).get("relations", {})
+					var relations: Dictionary = _get_faction_state(recipient_faction_id).get("relations", {}).duplicate(true)
 					relations[target] = int(relations.get(target, 0)) + value
-					_get_faction_state(faction_id)["relations"] = relations
+					_get_faction_state(recipient_faction_id)["relations"] = relations
 				else:
-					_add_resource_value_for_faction(faction_id, target, value)
-					_apply_resource_caps_to_faction(faction_id, [target])
+					_add_resource_value_for_faction(recipient_faction_id, target, value)
+					_apply_resource_caps_to_faction(recipient_faction_id, [target])
 			"set":
 				if target == "":
 					continue
+				var set_value := int(effect.get("resolved_value", effect.get("value", 0)))
 				if scope == "relations":
-					var relations: Dictionary = _get_faction_state(faction_id).get("relations", {})
-					relations[target] = int(effect.get("value", 0))
-					_get_faction_state(faction_id)["relations"] = relations
+					var relation_store: Dictionary = _get_faction_state(recipient_faction_id).get("relations", {}).duplicate(true)
+					relation_store[target] = set_value
+					_get_faction_state(recipient_faction_id)["relations"] = relation_store
 				else:
-					_set_resource_value_for_faction(faction_id, target, int(effect.get("value", 0)))
-					_apply_resource_caps_to_faction(faction_id, [target])
+					_set_resource_value_for_faction(recipient_faction_id, target, set_value)
+					_apply_resource_caps_to_faction(recipient_faction_id, [target])
 			"add_unit", "add_army_unit":
 				var unit_id := String(effect.get("unit_id", payload.get(String(effect.get("unit_id_from_payload", "unit_id")), "")))
 				var count := int(effect.get("count", payload.get(String(effect.get("count_from_payload", "count")), 1)))
-				_add_army_unit(faction_id, unit_id, maxi(1, count))
+				_add_army_unit(recipient_faction_id, unit_id, maxi(1, count))
 
 
 func _add_army_unit(faction_id: String, unit_id: String, count: int) -> void:
@@ -696,6 +884,19 @@ func _build_runtime_ai_action_selector(action_ids: Array) -> Dictionary:
 	return { "type": "selector", "children": children }
 
 
+func _build_action_payload_for_faction(faction_id: String, action: Dictionary) -> Dictionary:
+	var payload := {}
+	if not bool(action.get("requires_target", false)):
+		return payload
+	var target_options := _get_action_target_options(action, faction_id)
+	if target_options.is_empty():
+		return payload
+	var target_faction_id := String(target_options[0].get("id", ""))
+	if target_faction_id != "":
+		payload["target_faction_id"] = target_faction_id
+	return payload
+
+
 func _execute_behavior_node(faction_id: String, node) -> bool:
 	if not node is Dictionary:
 		return false
@@ -713,7 +914,10 @@ func _execute_behavior_node(faction_id: String, node) -> bool:
 		"condition":
 			return _evaluate_ai_condition(faction_id, node)
 		"action":
-			return _apply_action_for_faction(faction_id, String(node.get("action_id", "")), {}, false)
+			var action_id := String(node.get("action_id", ""))
+			var action: Dictionary = config.get_action(action_id)
+			var payload := _build_action_payload_for_faction(faction_id, action)
+			return _apply_action_for_faction(faction_id, action_id, payload, false)
 	return false
 
 
@@ -751,7 +955,7 @@ func _build_action_log(faction_id: String, action: Dictionary, payload: Dictiona
 func _build_action_log_cost_text(action: Dictionary, payload: Dictionary, ap_cost: int = -1) -> String:
 	var actual_ap_cost := ap_cost if ap_cost >= 0 else int(action.get("ap_cost", 0))
 	var parts: Array[String] = ["行动力-%d" % actual_ap_cost]
-	var full_cost := _build_action_cost(action, payload)
+	var full_cost: Dictionary = action.get("cost", {})
 	for resource_id in full_cost.keys():
 		parts.append("%s-%d" % [_get_resource_display_name(String(resource_id)), int(full_cost[resource_id])])
 	return "、".join(parts) if not parts.is_empty() else "无"
@@ -763,22 +967,22 @@ func _build_action_log_effect_text(effects: Array, payload: Dictionary) -> Strin
 		if not effect is Dictionary:
 			continue
 		var scope := String(effect.get("scope", "resources"))
-		var target := String(effect.get("target", effect.get("unit_id_from_payload", "")))
-		if effect.has("target_from_payload"):
-			target = String(payload.get(String(effect["target_from_payload"]), ""))
+		var target := String(effect.get("resolved_target", effect.get("target", "")))
 		match String(effect.get("op", "")):
 			"add":
 				if target == "":
 					continue
 				var target_name: String = config.get_faction_display_name(target) if scope == "relations" else _get_resource_display_name(target)
-				parts.append("%s%+d" % [target_name, int(effect.get("value", 0))])
+				var value := int(effect.get("resolved_value", effect.get("value", 0)))
+				parts.append("%s%+d" % [target_name, value])
 			"set":
 				if target == "":
 					continue
 				var target_name: String = config.get_faction_display_name(target) if scope == "relations" else _get_resource_display_name(target)
-				parts.append("%s设为%d" % [target_name, int(effect.get("value", 0))])
+				var set_value := int(effect.get("resolved_value", effect.get("value", 0)))
+				parts.append("%s设为%d" % [target_name, set_value])
 			"add_unit", "add_army_unit":
-				var unit_id := String(effect.get("unit_id", payload.get(String(effect.get("unit_id_from_payload", "unit_id")), "")))
+				var unit_id := String(effect.get("resolved_target", effect.get("unit_id", payload.get(String(effect.get("unit_id_from_payload", "unit_id")), ""))))
 				if unit_id == "":
 					continue
 				var unit_config: Dictionary = config.get_unit(unit_id)
@@ -906,7 +1110,7 @@ func _apply_round_settlement(faction_id: String, outcome: String, apply_outcome_
 		return
 	var summary: Array[String] = []
 	var maintenance_cost := -_get_total_maintenance_for_faction(faction_id)
-	_apply_settlement_resource_change(faction_id, "assets", maintenance_cost, summary)
+	_apply_settlement_resource_change(faction_id, "assets", maintenance_cost, summary, _get_resource_display_name("maintenance"))
 	_apply_settlement_operations(faction_id, settlement.get("operations", []), summary)
 	if apply_outcome_modifiers:
 		var outcome_modifiers: Dictionary = settlement.get("outcome_modifiers", {})
@@ -971,42 +1175,141 @@ func _apply_settlement_operations(faction_id: String, operations: Array, summary
 		var target := String(operation.get("target", ""))
 		if target == "":
 			continue
+		var derived_metrics := _build_derived_metrics_for_faction(faction_id)
 		match String(operation.get("op", "")):
 			"add":
 				var add_value := int(operation.get("value", 0))
 				_add_resource_value_for_faction(faction_id, target, add_value)
-				_append_settlement_summary(summary, target, add_value)
+				_append_settlement_summary(summary, target, add_value, _describe_settlement_operation(operation))
 			"add_from_resource":
 				var source_id := String(operation.get("resource_id", ""))
-				var resource_value := int(_get_resource_value_for_faction(faction_id, source_id)) * int(operation.get("multiplier", 1))
+				var resource_value := _finalize_resolved_value(float(_get_resource_value_for_faction(faction_id, source_id)) * float(operation.get("multiplier", 1.0)), bool(operation.get("round", true)))
 				_add_resource_value_for_faction(faction_id, target, resource_value)
-				_append_settlement_summary(summary, target, resource_value)
+				_append_settlement_summary(summary, target, resource_value, _describe_settlement_operation(operation))
 			"add_percent_of":
 				var base_value = _get_resource_value_for_faction(faction_id, String(operation.get("resource_id", "")))
 				var percent_source_id := String(operation.get("percent_resource_id", ""))
 				var percent_value := float(operation.get("percent", _get_resource_value_for_faction(faction_id, percent_source_id)))
-				var percent_amount := int(round(float(base_value) * percent_value))
+				var percent_amount := _finalize_resolved_value(float(base_value) * percent_value, bool(operation.get("round", true)))
 				_add_resource_value_for_faction(faction_id, target, percent_amount)
-				_append_settlement_summary(summary, target, percent_amount)
+				_append_settlement_summary(summary, target, percent_amount, _describe_settlement_operation(operation))
+			"add_scaled_resource":
+				var source_resource_id := String(operation.get("resource_id", ""))
+				var scaled_value := float(_get_resource_value_for_faction(faction_id, source_resource_id)) * float(operation.get("multiplier", 1.0))
+				var scale_resource_id := String(operation.get("scale_resource_id", ""))
+				if scale_resource_id != "":
+					scaled_value *= float(_get_resource_value_for_faction(faction_id, scale_resource_id))
+				var scale_derived_id := String(operation.get("scale_derived_id", ""))
+				if scale_derived_id != "":
+					scaled_value *= float(derived_metrics.get(scale_derived_id, 0.0))
+				var scaled_amount := _finalize_resolved_value(scaled_value, bool(operation.get("round", true)))
+				_add_resource_value_for_faction(faction_id, target, scaled_amount)
+				_append_settlement_summary(summary, target, scaled_amount, _describe_settlement_operation(operation))
+			"add_share_of_city_resource":
+				var city_resource_id := String(operation.get("resource_id", ""))
+				var share_id := String(operation.get("share_id", ""))
+				var share_amount := _finalize_resolved_value(float(_get_resource_value_for_faction(faction_id, city_resource_id)) * float(derived_metrics.get(share_id, 0.0)) * float(operation.get("multiplier", 1.0)), bool(operation.get("round", true)))
+				_add_resource_value_for_faction(faction_id, target, share_amount)
+				_append_settlement_summary(summary, target, share_amount, _describe_settlement_operation(operation))
+			"add_from_derived":
+				var derived_id := String(operation.get("derived_id", ""))
+				var derived_amount := _finalize_resolved_value(float(derived_metrics.get(derived_id, 0.0)) * float(operation.get("multiplier", 1.0)), bool(operation.get("round", true)))
+				_add_resource_value_for_faction(faction_id, target, derived_amount)
+				_append_settlement_summary(summary, target, derived_amount, _describe_settlement_operation(operation))
+			"add_from_relation":
+				var relation_faction_id := String(operation.get("relation_faction_id", ""))
+				var relation_value := int(_get_faction_state(faction_id).get("relations", {}).get(relation_faction_id, 0))
+				var relation_amount := _finalize_resolved_value(float(relation_value) * float(operation.get("multiplier", 1.0)), bool(operation.get("round", true)))
+				_add_resource_value_for_faction(faction_id, target, relation_amount)
+				_append_settlement_summary(summary, target, relation_amount, _describe_settlement_operation(operation))
 			"reset_from_initial":
 				var initial_value = _get_initial_resource_value(faction_id, target)
 				_set_resource_value_for_faction(faction_id, target, initial_value)
-				summary.append("%s重置为%d" % [_get_resource_display_name(target), initial_value])
+				summary.append("%s：%s重置为%d" % [_describe_settlement_operation(operation), _get_resource_display_name(target), initial_value])
 		_apply_resource_cap(faction_id, target)
 
 
-func _apply_settlement_resource_change(faction_id: String, target: String, value: int, summary: Array[String]) -> void:
+func _apply_settlement_resource_change(faction_id: String, target: String, value: int, summary: Array[String], source_label: String = "") -> void:
 	if target == "":
 		return
 	_add_resource_value_for_faction(faction_id, target, value)
 	_apply_resource_cap(faction_id, target)
-	_append_settlement_summary(summary, target, value)
+	_append_settlement_summary(summary, target, value, source_label)
 
 
-func _append_settlement_summary(summary: Array[String], target: String, value: int) -> void:
+func _append_settlement_summary(summary: Array[String], target: String, value: int, source_label: String = "") -> void:
 	if value == 0:
 		return
-	summary.append("%s%+d" % [_get_resource_display_name(target), value])
+	var resource_change := "%s%+d" % [_get_resource_display_name(target), value]
+	if source_label == "":
+		summary.append(resource_change)
+		return
+	summary.append("%s：%s" % [source_label, resource_change])
+
+
+func _describe_settlement_operation(operation: Dictionary) -> String:
+	match String(operation.get("op", "")):
+		"add":
+			return _get_resource_display_name(String(operation.get("target", "")))
+		"add_from_resource":
+			return _get_resource_display_name(String(operation.get("resource_id", "")))
+		"add_percent_of":
+			var resource_name := _get_resource_display_name(String(operation.get("resource_id", "")))
+			var percent_source_id := String(operation.get("percent_resource_id", ""))
+			if percent_source_id != "":
+				return "%s x %s" % [resource_name, _get_resource_display_name(percent_source_id)]
+			return "%s x %.0f%%" % [resource_name, float(operation.get("percent", 0.0)) * 100.0]
+		"add_scaled_resource":
+			var scaled_parts: Array[String] = [_get_resource_display_name(String(operation.get("resource_id", "")))]
+			var scale_resource_id := String(operation.get("scale_resource_id", ""))
+			if scale_resource_id != "":
+				scaled_parts.append(_get_resource_display_name(scale_resource_id))
+			var scale_derived_id := String(operation.get("scale_derived_id", ""))
+			if scale_derived_id != "":
+				scaled_parts.append(_get_resource_display_name(scale_derived_id))
+			return " x ".join(scaled_parts)
+		"add_share_of_city_resource":
+			return "%s x %s" % [
+				_get_resource_display_name(String(operation.get("resource_id", ""))),
+				_get_resource_display_name(String(operation.get("share_id", "")))
+			]
+		"add_from_derived":
+			return _get_resource_display_name(String(operation.get("derived_id", "")))
+		"add_from_relation":
+			return "与%s关系" % _get_relation_target_display_name(String(operation.get("relation_faction_id", "")))
+		"reset_from_initial":
+			return "初始化"
+	return _get_resource_display_name(String(operation.get("target", "")))
+
+
+func _get_relation_target_display_name(faction_id: String) -> String:
+	if faction_id == "":
+		return "目标势力"
+	return config.get_faction_display_name(faction_id) if config != null else faction_id
+
+
+func _build_settlement_summary_from_delta(settlement_delta: Dictionary) -> Array[String]:
+	var summary: Array[String] = []
+	for section_id in ["city_resources", "faction_resources", "special_resources", "derived_metrics", "relations"]:
+		var values: Dictionary = settlement_delta.get(section_id, {})
+		for key_variant in values.keys():
+			var key := String(key_variant)
+			var value = values.get(key, 0)
+			if value is float:
+				if absf(float(value)) <= 0.0001:
+					continue
+				summary.append("%s%+.2f" % [_get_settlement_summary_name(section_id, key), snappedf(float(value), 0.01)])
+			else:
+				if int(value) == 0:
+					continue
+				summary.append("%s%+d" % [_get_settlement_summary_name(section_id, key), int(value)])
+	return summary
+
+
+func _get_settlement_summary_name(section_id: String, key: String) -> String:
+	if section_id == "relations":
+		return config.get_faction_display_name(key)
+	return _get_resource_display_name(key)
 
 
 func _get_initial_resource_value(faction_id: String, resource_id: String):
@@ -1114,9 +1417,12 @@ func _can_faction_continue_management(faction_id: String) -> bool:
 		var action_id := String(action_variant.get("id", ""))
 		if action_id == "" or not _can_faction_select_action(faction_id, action_id):
 			continue
+		var payload := _build_action_payload_for_faction(faction_id, action_variant)
+		if bool(action_variant.get("requires_target", false)) and String(payload.get("target_faction_id", "")) == "":
+			continue
 		if _get_management_action_points(faction_id) < _get_effective_action_cost(action_id):
 			continue
-		var full_cost := _build_action_cost(action_variant, {})
+		var full_cost := _build_action_cost(action_variant, payload, faction_id)
 		var can_afford := true
 		for resource_id in full_cost.keys():
 			if _get_resource_value_for_faction(faction_id, String(resource_id)) < int(full_cost[resource_id]):
@@ -1234,15 +1540,40 @@ func _add_resource_value_for_faction(faction_id: String, resource_id: String, va
 func _build_derived_metrics_for_faction(faction_id: String) -> Dictionary:
 	var support_base := int(_get_resource_value_for_faction(faction_id, "support_base"))
 	var owned_assets := int(_get_resource_value_for_faction(faction_id, "owned_assets"))
+	var population := int(_get_resource_value_for_faction(faction_id, "population"))
+	var development := int(_get_resource_value_for_faction(faction_id, "development"))
+	var recruit_rate := float(_get_resource_value_for_faction(faction_id, "recruit_rate"))
+	var gold_income := int(_get_resource_value_for_faction(faction_id, "gold_income"))
+	var asset_income := int(_get_resource_value_for_faction(faction_id, "asset_income"))
 	var total_support := 0
 	var total_owned_assets := 0
 	for other_faction_id in campaign_state.get("factions", {}).keys():
 		var id := String(other_faction_id)
 		total_support += int(_get_resource_value_for_faction(id, "support_base"))
 		total_owned_assets += int(_get_resource_value_for_faction(id, "owned_assets"))
+	var support_share := float(support_base) / float(total_support) if total_support > 0 else 0.0
+	var ownership_share := float(owned_assets) / float(total_owned_assets) if total_owned_assets > 0 else 0.0
+	var recruit_share := clampf(support_share * recruit_rate, 0.0, 1.0)
+	var maintenance := _get_total_maintenance_for_faction(faction_id)
+	var relations: Dictionary = _get_faction_state(faction_id).get("relations", {})
+	var relation_pressure := 0
+	for relation_value in relations.values():
+		var relation_amount := int(relation_value)
+		if relation_amount < 0:
+			relation_pressure += abs(relation_amount)
+	var city_influence := _finalize_resolved_value(float(support_base) * 0.4 + float(owned_assets) * 0.35 + float(development) * 0.25, true)
+	var projected_asset_gain := _finalize_resolved_value(float(development) * ownership_share * 0.6 + float(population) * support_share * 0.04 + float(gold_income) * city_influence * 0.02 + float(asset_income) * support_share, true)
+	var projected_manpower_gain := _finalize_resolved_value(float(population) * recruit_share * 0.06 + float(population) * recruit_rate * support_share * 0.02, true)
+	var readiness_margin := projected_asset_gain - maintenance
 	return {
-		"support_share": float(support_base) / float(total_support) if total_support > 0 else 0.0,
-		"ownership_share": float(owned_assets) / float(total_owned_assets) if total_owned_assets > 0 else 0.0,
+		"support_share": support_share,
+		"ownership_share": ownership_share,
+		"recruit_share": recruit_share,
+		"city_influence": city_influence,
+		"relation_pressure": relation_pressure,
+		"projected_asset_gain": projected_asset_gain,
+		"projected_manpower_gain": projected_manpower_gain,
+		"readiness_margin": readiness_margin,
 		"war_expectation": support_base + owned_assets,
-		"maintenance": _get_total_maintenance_for_faction(faction_id),
+		"maintenance": maintenance,
 	}

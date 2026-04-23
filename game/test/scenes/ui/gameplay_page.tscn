@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://bpi2rq4pf1r24"]
+[gd_scene load_steps=5 format=3 uid="uid://bpi2rq4pf1r24"]
 
 [ext_resource type="Script" path="res://scripts/ui/gameplay_page.gd" id="1_gameplay"]
 
@@ -14,6 +14,38 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 shadow_color = Color(0, 0, 0, 0.2)
+shadow_size = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_actionhover"]
+bg_color = Color(0.051, 0.067, 0.082, 0.97)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.682, 0.741, 0.604, 0.92)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.38)
+shadow_size = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_forecastpanel"]
+bg_color = Color(0.071, 0.102, 0.125, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.471, 0.576, 0.608, 0.92)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+shadow_color = Color(0, 0, 0, 0.22)
 shadow_size = 6
 
 [node name="GameplayPage" type="Control"]
@@ -45,6 +77,7 @@ offset_bottom = 340.0
 custom_minimum_size = Vector2(280, 0)
 mouse_filter = 0
 z_index = 10
+theme_override_styles/panel = SubResource("StyleBoxFlat_actionhover")
 
 [node name="MarginContainer" type="MarginContainer" parent="ResourceHoverPanel"]
 layout_mode = 2
@@ -87,15 +120,80 @@ text = "关系"
 layout_mode = 2
 columns = 2
 
+[node name="ActionHoverPanel" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 360.0
+offset_bottom = 320.0
+custom_minimum_size = Vector2(300, 0)
+mouse_filter = 0
+z_index = 11
+theme_override_styles/panel = SubResource("StyleBoxFlat_actionhover")
+
+[node name="MarginContainer" type="MarginContainer" parent="ActionHoverPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="HoverContent" type="VBoxContainer" parent="ActionHoverPanel/MarginContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(276, 0)
+theme_override_constants/separation = 8
+
+[node name="ActionHoverTitle" type="Label" parent="ActionHoverPanel/MarginContainer/HoverContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "行动详情"
+
+[node name="ActionHoverSummary" type="Label" parent="ActionHoverPanel/MarginContainer/HoverContent"]
+visible = false
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="HoverScroll" type="ScrollContainer" parent="ActionHoverPanel/MarginContainer/HoverContent"]
+custom_minimum_size = Vector2(0, 220)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 0
+
+[node name="HoverInner" type="VBoxContainer" parent="ActionHoverPanel/MarginContainer/HoverContent/HoverScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="ActionHoverEffectTitle" type="Label" parent="ActionHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "影响"
+
+[node name="ActionHoverEffectList" type="VBoxContainer" parent="ActionHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ActionHoverDeltaTitle" type="Label" parent="ActionHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "即时变化"
+
+[node name="ActionHoverDeltaList" type="GridContainer" parent="ActionHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner"]
+layout_mode = 2
+columns = 2
+
 [node name="MainPanel" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 28.0
-offset_top = 24.0
-offset_right = -28.0
-offset_bottom = -24.0
+offset_left = 20.0
+offset_top = 16.0
+offset_right = -20.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -108,6 +206,7 @@ theme_override_constants/margin_bottom = 16
 
 [node name="VBox" type="VBoxContainer" parent="MainPanel/MarginContainer"]
 layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/separation = 14
 
 [node name="TopBar" type="Label" parent="MainPanel/MarginContainer/VBox"]
@@ -146,12 +245,15 @@ vertical_alignment = 1
 
 [node name="Content" type="HBoxContainer" parent="MainPanel/MarginContainer/VBox"]
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 16
+theme_override_constants/separation = 12
 
 [node name="Left" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content"]
+custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 8
 
 [node name="ResourceTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Left"]
@@ -164,7 +266,7 @@ layout_mode = 2
 theme_override_constants/separation = 6
 
 [node name="LeftScroll" type="ScrollContainer" parent="MainPanel/MarginContainer/VBox/Content/Left"]
-custom_minimum_size = Vector2(260, 0)
+custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -178,7 +280,6 @@ layout_mode = 2
 columns = 2
 
 [node name="RelationTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Left/LeftScroll/LeftContent"]
-visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "关系"
@@ -188,9 +289,11 @@ layout_mode = 2
 columns = 2
 
 [node name="Center" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content"]
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_constants/separation = 8
+size_flags_vertical = 3
+theme_override_constants/separation = 6
 
 [node name="ActionTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Center"]
 layout_mode = 2
@@ -198,7 +301,7 @@ theme_override_font_sizes/font_size = 18
 text = "行动"
 
 [node name="ActionScroll" type="ScrollContainer" parent="MainPanel/MarginContainer/VBox/Content/Center"]
-custom_minimum_size = Vector2(320, 150)
+custom_minimum_size = Vector2(0, 62)
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -213,7 +316,7 @@ theme_override_font_sizes/font_size = 18
 text = "选项"
 
 [node name="RecruitScroll" type="ScrollContainer" parent="MainPanel/MarginContainer/VBox/Content/Center"]
-custom_minimum_size = Vector2(320, 130)
+custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -222,18 +325,170 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="Right" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content"]
+[node name="TargetTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Center"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "目标"
+
+[node name="TargetScroll" type="ScrollContainer" parent="MainPanel/MarginContainer/VBox/Content/Center"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TargetList" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Center/TargetScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
+
+[node name="ActionDetailPanel" type="PanelContainer" parent="MainPanel/MarginContainer/VBox/Content/Center"]
+visible = false
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ActionDetailMargin" type="MarginContainer" parent="MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="ActionDetailScroll" type="ScrollContainer" parent="MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+
+[node name="ActionDetailContent" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="ActionDetailTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "行动详情"
+
+[node name="ActionDetailSummary" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent"]
+layout_mode = 2
+text = "选择一个行动后，可在这里查看成本、效果与即时变化。"
+autowrap_mode = 2
+
+[node name="DetailCostTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent"]
+layout_mode = 2
+text = "成本"
+
+[node name="DetailCostList" type="GridContainer" parent="MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent"]
+layout_mode = 2
+columns = 2
+
+[node name="DetailEffectTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent"]
+layout_mode = 2
+text = "效果"
+
+[node name="DetailEffectList" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="DetailDeltaTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent"]
+layout_mode = 2
+text = "即时变化"
+
+[node name="DetailDeltaList" type="GridContainer" parent="MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent"]
+layout_mode = 2
+columns = 2
+
+[node name="ExecuteActionButton" type="Button" parent="MainPanel/MarginContainer/VBox/Content/Center"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "执行行动"
+disabled = true
+
+[node name="Right" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content"]
+custom_minimum_size = Vector2(290, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="ForecastPanel" type="PanelContainer" parent="MainPanel/MarginContainer/VBox/Content/Right"]
+custom_minimum_size = Vector2(0, 156)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_forecastpanel")
+
+[node name="ForecastMargin" type="MarginContainer" parent="MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="ForecastScroll" type="ScrollContainer" parent="MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+
+[node name="ForecastContent" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="ForecastTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "结算预测"
+
+[node name="ForecastSummaryList" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ForecastBreakdownButton" type="Button" parent="MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent"]
+visible = false
+layout_mode = 2
+flat = true
+alignment = 0
+text = "展开明细"
+
+[node name="ForecastBreakdownList" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ForecastDeltaTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent"]
+layout_mode = 2
+text = "下回合变化"
+
+[node name="ForecastDeltaList" type="GridContainer" parent="MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent"]
+layout_mode = 2
+columns = 2
+
+[node name="ForecastProjectedTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent"]
+layout_mode = 2
+text = "预计结算后"
+
+[node name="ForecastProjectedList" type="GridContainer" parent="MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent"]
+layout_mode = 2
+columns = 2
 
 [node name="ArmyTitle" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Right"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "当前兵团"
 
-[node name="ArmyList" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Right"]
+[node name="ArmyScroll" type="ScrollContainer" parent="MainPanel/MarginContainer/VBox/Content/Right"]
+custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+
+[node name="ArmyList" type="VBoxContainer" parent="MainPanel/MarginContainer/VBox/Content/Right/ArmyScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
 [node name="MoraleLabel" type="Label" parent="MainPanel/MarginContainer/VBox/Content/Right"]
@@ -250,7 +505,7 @@ theme_override_font_sizes/font_size = 18
 text = "操作日志"
 
 [node name="LogScroll" type="ScrollContainer" parent="MainPanel/MarginContainer/VBox/Content/Right"]
-custom_minimum_size = Vector2(260, 140)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_vertical = 3
 

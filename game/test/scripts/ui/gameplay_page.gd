@@ -7,6 +7,8 @@ var game_session: Node = null
 var config = null
 var _snapshot: Dictionary = {}
 var _selected_action_group_id: String = ""
+var _selected_action_id: String = ""
+var _selected_target_faction_id: String = ""
 var _selected_view_faction_id: String = ""
 var _hovered_faction_id: String = ""
 var _is_hovering_faction_marker := false
@@ -20,6 +22,11 @@ var _is_playing_action_cue := false
 var _resource_faction_markers: Dictionary = {}
 var _resource_faction_labels: Dictionary = {}
 var _resource_faction_indicator_lights: Dictionary = {}
+var _hovered_action_id: String = ""
+var _is_hovering_action_button := false
+var _is_hovering_action_panel := false
+var _action_hover_request_id: int = 0
+var _forecast_breakdown_expanded := false
 
 @onready var _top_bar: Label = $MainPanel/MarginContainer/VBox/TopBar
 @onready var _action_cue: PanelContainer = $ActionCue
@@ -34,11 +41,37 @@ var _resource_faction_indicator_lights: Dictionary = {}
 @onready var _resource_hover_scroll: ScrollContainer = $ResourceHoverPanel/MarginContainer/HoverContent/HoverScroll
 @onready var _resource_hover_list: GridContainer = $ResourceHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner/HoverResourceList
 @onready var _resource_hover_relation_list: GridContainer = $ResourceHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner/HoverRelationList
+@onready var _action_hover_panel: PanelContainer = $ActionHoverPanel
+@onready var _action_hover_title: Label = $ActionHoverPanel/MarginContainer/HoverContent/ActionHoverTitle
+@onready var _action_hover_summary: Label = $ActionHoverPanel/MarginContainer/HoverContent/ActionHoverSummary
+@onready var _action_hover_scroll: ScrollContainer = $ActionHoverPanel/MarginContainer/HoverContent/HoverScroll
+@onready var _action_hover_effect_title: Label = $ActionHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner/ActionHoverEffectTitle
+@onready var _action_hover_effect_list: VBoxContainer = $ActionHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner/ActionHoverEffectList
+@onready var _action_hover_delta_title: Label = $ActionHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner/ActionHoverDeltaTitle
+@onready var _action_hover_delta_list: GridContainer = $ActionHoverPanel/MarginContainer/HoverContent/HoverScroll/HoverInner/ActionHoverDeltaList
 @onready var _action_list: VBoxContainer = $MainPanel/MarginContainer/VBox/Content/Center/ActionScroll/ActionList
 @onready var _recruit_list: VBoxContainer = $MainPanel/MarginContainer/VBox/Content/Center/RecruitScroll/RecruitList
-@onready var _army_list: VBoxContainer = $MainPanel/MarginContainer/VBox/Content/Right/ArmyList
+@onready var _target_title: Label = $MainPanel/MarginContainer/VBox/Content/Center/TargetTitle
+@onready var _target_scroll: ScrollContainer = $MainPanel/MarginContainer/VBox/Content/Center/TargetScroll
+@onready var _target_list: VBoxContainer = $MainPanel/MarginContainer/VBox/Content/Center/TargetScroll/TargetList
+@onready var _detail_summary_label: Label = $MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent/ActionDetailSummary
+@onready var _detail_cost_title: Label = $MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent/DetailCostTitle
+@onready var _detail_cost_list: GridContainer = $MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent/DetailCostList
+@onready var _detail_effect_title: Label = $MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent/DetailEffectTitle
+@onready var _detail_effect_list: VBoxContainer = $MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent/DetailEffectList
+@onready var _detail_delta_title: Label = $MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent/DetailDeltaTitle
+@onready var _detail_delta_list: GridContainer = $MainPanel/MarginContainer/VBox/Content/Center/ActionDetailPanel/ActionDetailMargin/ActionDetailScroll/ActionDetailContent/DetailDeltaList
+@onready var _execute_action_button: Button = $MainPanel/MarginContainer/VBox/Content/Center/ExecuteActionButton
+@onready var _army_list: VBoxContainer = $MainPanel/MarginContainer/VBox/Content/Right/ArmyScroll/ArmyList
 @onready var _morale_label: Label = $MainPanel/MarginContainer/VBox/Content/Right/MoraleLabel
 @onready var _maintenance_label: Label = $MainPanel/MarginContainer/VBox/Content/Right/MaintenanceLabel
+@onready var _forecast_summary_list: VBoxContainer = $MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent/ForecastSummaryList
+@onready var _forecast_breakdown_button: Button = $MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent/ForecastBreakdownButton
+@onready var _forecast_breakdown_list: VBoxContainer = $MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent/ForecastBreakdownList
+@onready var _forecast_delta_title: Label = $MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent/ForecastDeltaTitle
+@onready var _forecast_delta_list: GridContainer = $MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent/ForecastDeltaList
+@onready var _forecast_projected_title: Label = $MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent/ForecastProjectedTitle
+@onready var _forecast_projected_list: GridContainer = $MainPanel/MarginContainer/VBox/Content/Right/ForecastPanel/ForecastMargin/ForecastScroll/ForecastContent/ForecastProjectedList
 @onready var _log_list: VBoxContainer = $MainPanel/MarginContainer/VBox/Content/Right/LogScroll/LogList
 @onready var _start_battle_button: Button = $MainPanel/MarginContainer/VBox/Footer/StartBattleButton
 
@@ -56,11 +89,18 @@ func setup(session: Node) -> void:
 
 func _ready() -> void:
 	_start_battle_button.pressed.connect(_on_start_battle_pressed)
+	_execute_action_button.pressed.connect(_on_execute_action_pressed)
+	_forecast_breakdown_button.pressed.connect(_on_forecast_breakdown_pressed)
 	_action_cue.hide()
 	_action_cue.modulate = Color(1, 1, 1, 0)
 	_resource_hover_panel.hide()
 	_resource_hover_panel.mouse_entered.connect(_on_hover_panel_mouse_entered)
 	_resource_hover_panel.mouse_exited.connect(_on_hover_panel_mouse_exited)
+	_resource_hover_panel.gui_input.connect(_on_resource_hover_panel_gui_input)
+	_action_hover_panel.hide()
+	_action_hover_panel.mouse_entered.connect(_on_action_hover_panel_mouse_entered)
+	_action_hover_panel.mouse_exited.connect(_on_action_hover_panel_mouse_exited)
+	_action_hover_panel.gui_input.connect(_on_action_hover_panel_gui_input)
 	if game_session != null and game_session.has_method("get_campaign_snapshot"):
 		_on_campaign_state_changed(game_session.get_campaign_snapshot())
 
@@ -80,8 +120,19 @@ func _render() -> void:
 	_clear_children(_relation_list)
 	_clear_children(_action_list)
 	_clear_children(_recruit_list)
+	_clear_children(_target_list)
+	_clear_children(_detail_cost_list)
+	_clear_children(_detail_effect_list)
+	_clear_children(_detail_delta_list)
 	_clear_children(_army_list)
+	_clear_children(_forecast_summary_list)
+	_clear_children(_forecast_breakdown_list)
+	_clear_children(_forecast_delta_list)
+	_clear_children(_forecast_projected_list)
 	_clear_children(_log_list)
+	_clear_children(_action_hover_effect_list)
+	_clear_children(_action_hover_delta_list)
+	_hide_action_hover_panel()
 
 	_start_battle_button.text = String(_snapshot.get("next_round_button_text", "进入战斗"))
 	_start_battle_button.tooltip_text = ""
@@ -90,6 +141,15 @@ func _render() -> void:
 		_top_bar.text = "玩法配置加载失败"
 		_resource_title.text = "城市概览"
 		_relation_title.hide()
+		_target_title.hide()
+		_target_scroll.hide()
+		_detail_summary_label.text = "未能加载经营行动。"
+		_detail_cost_title.hide()
+		_detail_effect_title.hide()
+		_detail_delta_title.hide()
+		_forecast_breakdown_button.hide()
+		_forecast_breakdown_list.hide()
+		_execute_action_button.disabled = true
 		_start_battle_button.disabled = true
 		_hide_action_cue_immediately()
 		return
@@ -115,6 +175,8 @@ func _render() -> void:
 	_render_relations()
 	_render_action_groups()
 	_render_action_options()
+	_render_selected_action_details()
+	_render_forecast_panel()
 	_render_army()
 	_render_log()
 
@@ -229,7 +291,7 @@ func _render_resources() -> void:
 
 
 func _render_relations() -> void:
-	_relation_title.hide()
+	_relation_title.visible = _relation_list.get_child_count() > 0
 
 
 func _render_resource_snapshot(resource_list: GridContainer, relation_list: GridContainer, resource_snapshot: Dictionary, include_city_resources: bool = true, include_faction_details: bool = true) -> void:
@@ -279,6 +341,8 @@ func _render_action_groups() -> void:
 	var groups: Array = game_session.get_available_action_groups()
 	if groups.is_empty():
 		_selected_action_group_id = ""
+		_selected_action_id = ""
+		_selected_target_faction_id = ""
 		return
 	var group_ids: Array = []
 	for group in groups:
@@ -292,7 +356,11 @@ func _render_action_groups() -> void:
 		button.toggle_mode = true
 		button.button_pressed = group_id == _selected_action_group_id
 		button.pressed.connect(func() -> void:
+			if _selected_action_group_id == group_id:
+				return
 			_selected_action_group_id = group_id
+			_selected_action_id = ""
+			_selected_target_faction_id = ""
 			_render()
 		)
 		_action_list.add_child(button)
@@ -300,18 +368,435 @@ func _render_action_groups() -> void:
 
 func _render_action_options() -> void:
 	if _selected_action_group_id == "" or game_session == null or not game_session.has_method("get_available_action_options"):
+		_selected_action_id = ""
+		_selected_target_faction_id = ""
+		_target_title.hide()
+		_target_scroll.hide()
+		_execute_action_button.disabled = true
 		return
 	var is_player_turn := bool(_snapshot.get("is_player_turn", false))
-	for action in game_session.get_available_action_options(_selected_action_group_id):
+	var actions: Array = game_session.get_available_action_options(_selected_action_group_id)
+	var action_ids: Array[String] = []
+	for action_variant in actions:
+		if action_variant is Dictionary:
+			action_ids.append(String((action_variant as Dictionary).get("id", "")))
+	if actions.is_empty():
+		_selected_action_id = ""
+		_selected_target_faction_id = ""
+	else:
+		if _selected_action_id == "" or not action_ids.has(_selected_action_id):
+			_selected_action_id = action_ids[0]
+	var selected_action := _get_selected_action_definition(actions)
+	_sync_selected_target_for_action(selected_action)
+	for action_variant in actions:
+		if not action_variant is Dictionary:
+			continue
+		var action := action_variant as Dictionary
 		var action_id := String(action.get("id", ""))
 		var button := Button.new()
+		var hovered_action := action.duplicate(true)
 		button.text = _build_action_button_text(action)
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		button.disabled = (not is_player_turn) or (not _can_apply_action(action_id))
+		button.toggle_mode = true
+		button.button_pressed = action_id == _selected_action_id
+		button.disabled = not is_player_turn or not _can_select_action(action)
+		button.tooltip_text = ""
+		button.mouse_entered.connect(func() -> void:
+			_on_action_button_mouse_entered(hovered_action, button)
+		)
+		button.mouse_exited.connect(func() -> void:
+			_on_action_button_mouse_exited(action_id)
+		)
+		button.gui_input.connect(func(event: InputEvent) -> void:
+			_on_action_button_gui_input(event, hovered_action, button)
+		)
 		button.pressed.connect(func() -> void:
-			action_requested.emit(action_id, {})
+			_selected_action_id = action_id
+			_selected_target_faction_id = ""
+			_render()
 		)
 		_recruit_list.add_child(button)
+	_render_target_options(selected_action)
+	_update_execute_action_button(selected_action)
+
+
+func _render_target_options(action: Dictionary) -> void:
+	var requires_target := bool(action.get("requires_target", false))
+	_target_title.visible = requires_target
+	_target_scroll.visible = requires_target
+	if not requires_target:
+		return
+	var options := _get_selected_action_target_options()
+	if options.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "当前没有可选目标。"
+		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_target_list.add_child(empty_label)
+		return
+	var is_player_turn := bool(_snapshot.get("is_player_turn", false))
+	for option_variant in options:
+		if not option_variant is Dictionary:
+			continue
+		var option := option_variant as Dictionary
+		var target_id := String(option.get("id", ""))
+		var button := Button.new()
+		button.toggle_mode = true
+		button.button_pressed = target_id == _selected_target_faction_id
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.disabled = not is_player_turn
+		button.text = _build_target_button_text(option)
+		button.pressed.connect(func() -> void:
+			_selected_target_faction_id = target_id
+			_render()
+		)
+		_target_list.add_child(button)
+
+
+func _render_selected_action_details() -> void:
+	_detail_summary_label.text = ""
+	_detail_cost_title.hide()
+	_detail_effect_title.hide()
+	_detail_delta_title.hide()
+
+
+func _on_action_button_mouse_entered(action: Dictionary, button: Control) -> void:
+	_is_hovering_action_button = true
+	_show_action_hover_panel(action, button)
+
+
+func _on_action_button_mouse_exited(action_id: String) -> void:
+	if _hovered_action_id != action_id:
+		return
+	_is_hovering_action_button = false
+	var request_id := _action_hover_request_id
+	get_tree().create_timer(0.12).timeout.connect(func() -> void:
+		_update_action_hover_visibility(request_id)
+	)
+
+
+func _on_action_button_gui_input(event: InputEvent, action: Dictionary, button: Control) -> void:
+	if _handle_action_hover_scroll(event):
+		if not _action_hover_panel.visible:
+			_show_action_hover_panel(action, button)
+
+
+func _show_action_hover_panel(action: Dictionary, button: Control) -> void:
+	var action_id := String(action.get("id", ""))
+	_hovered_action_id = action_id
+	_action_hover_request_id += 1
+	var request_id := _action_hover_request_id
+	_clear_children(_action_hover_effect_list)
+	_clear_children(_action_hover_delta_list)
+	_action_hover_title.text = String(action.get("display_name", action_id))
+	_action_hover_summary.hide()
+	_action_hover_effect_title.hide()
+	_action_hover_delta_title.hide()
+	var payload := _build_action_hover_payload(action)
+	var projection := _get_projection_for_action(action_id, payload)
+	var resolved_action: Dictionary = projection.get("resolved_action", {})
+	if resolved_action.is_empty():
+		if bool(action.get("requires_target", false)):
+			_action_hover_summary.text = "选择目标后可查看该行动的具体变化。"
+		else:
+			_action_hover_summary.text = "当前无法解析该行动。"
+		_action_hover_summary.show()
+	else:
+		if payload.has("target_faction_id"):
+			_action_hover_summary.text = "当前目标：%s" % config.get_faction_display_name(String(payload.get("target_faction_id", "")))
+			_action_hover_summary.show()
+		_render_action_hover_effects(resolved_action)
+		_render_action_hover_delta(projection.get("action_delta", {}))
+		if _action_hover_effect_list.get_child_count() == 0 and _action_hover_delta_list.get_child_count() == 0 and not _action_hover_summary.visible:
+			_action_hover_summary.text = "当前没有额外变化。"
+			_action_hover_summary.show()
+	await _present_hover_panel("action", _action_hover_panel, _action_hover_scroll, button, "horizontal", 360.0, 260.0, request_id)
+
+
+func _render_action_hover_effects(resolved_action: Dictionary) -> void:
+	for effect_variant in resolved_action.get("effects", []):
+		if not effect_variant is Dictionary:
+			continue
+		var effect := effect_variant as Dictionary
+		var op := String(effect.get("op", ""))
+		if op != "add_unit" and op != "add_army_unit":
+			continue
+		var label := Label.new()
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.text = _describe_resolved_effect(effect)
+		_action_hover_effect_list.add_child(label)
+	_action_hover_effect_title.visible = _action_hover_effect_list.get_child_count() > 0
+
+
+func _render_action_hover_delta(action_delta: Dictionary) -> void:
+	_action_hover_delta_title.visible = not action_delta.is_empty()
+	if action_delta.is_empty():
+		return
+	_render_delta_sections(_action_hover_delta_list, action_delta)
+
+
+func _build_action_hover_payload(action: Dictionary) -> Dictionary:
+	var action_id := String(action.get("id", ""))
+	if bool(action.get("requires_target", false)) and action_id == _selected_action_id and _selected_target_faction_id != "":
+		return {"target_faction_id": _selected_target_faction_id}
+	return {}
+
+
+func _hide_action_hover_panel() -> void:
+	_hovered_action_id = ""
+	_is_hovering_action_button = false
+	_is_hovering_action_panel = false
+	_action_hover_request_id += 1
+	_action_hover_summary.hide()
+	_action_hover_effect_title.hide()
+	_action_hover_delta_title.hide()
+	_action_hover_panel.hide()
+
+
+func _update_action_hover_visibility(request_id: int) -> void:
+	if request_id != _action_hover_request_id:
+		return
+	if _is_hovering_action_button or _is_hovering_action_panel:
+		return
+	_hide_action_hover_panel()
+
+
+func _on_action_hover_panel_mouse_entered() -> void:
+	_is_hovering_action_panel = true
+
+
+func _on_action_hover_panel_mouse_exited() -> void:
+	_is_hovering_action_panel = false
+	var request_id := _action_hover_request_id
+	get_tree().create_timer(0.12).timeout.connect(func() -> void:
+		_update_action_hover_visibility(request_id)
+	)
+
+
+func _on_action_hover_panel_gui_input(event: InputEvent) -> void:
+	_handle_action_hover_scroll(event)
+
+
+func _handle_action_hover_scroll(event: InputEvent) -> bool:
+	return _scroll_hover_panel(_action_hover_panel, _action_hover_scroll, event)
+
+
+func _scroll_hover_panel(panel: PanelContainer, scroll: ScrollContainer, event: InputEvent) -> bool:
+	if not event is InputEventMouseButton:
+		return false
+	var mouse_event := event as InputEventMouseButton
+	if not mouse_event.pressed or not panel.visible:
+		return false
+	if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		scroll.scroll_vertical = maxi(scroll.scroll_vertical - 48, 0)
+		accept_event()
+		return true
+	if mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		var max_scroll := maxi(scroll.get_v_scroll_bar().max_value - scroll.get_v_scroll_bar().page, 0)
+		scroll.scroll_vertical = mini(scroll.scroll_vertical + 48, int(max_scroll))
+		accept_event()
+		return true
+	return false
+
+
+func _is_hover_request_current(kind: String, request_id: int) -> bool:
+	if kind == "action":
+		return request_id == _action_hover_request_id
+	if kind == "resource":
+		return request_id == _hover_visibility_request_id
+	return false
+
+
+func _present_hover_panel(kind: String, panel: PanelContainer, scroll: ScrollContainer, anchor: Control, placement: String, preferred_width: float, minimum_width: float, request_id: int) -> void:
+	panel.show()
+	scroll.scroll_vertical = 0
+	panel.reset_size()
+	await get_tree().process_frame
+	if not _is_hover_request_current(kind, request_id):
+		return
+	var viewport_rect := get_viewport_rect()
+	var max_panel_width := maxf(minimum_width, viewport_rect.size.x - 24.0)
+	var max_panel_height := maxf(220.0, viewport_rect.size.y - 24.0)
+	panel.custom_minimum_size = Vector2(minf(preferred_width, max_panel_width), 0)
+	panel.size = Vector2(minf(panel.size.x, max_panel_width), minf(panel.size.y, max_panel_height))
+	await get_tree().process_frame
+	if not _is_hover_request_current(kind, request_id):
+		return
+	var panel_size := panel.size
+	var anchor_position := anchor.get_global_position()
+	var position := anchor_position
+	if placement == "horizontal":
+		var right_position := anchor_position + Vector2(anchor.size.x + 8.0, 0)
+		var left_position := anchor_position + Vector2(-panel_size.x - 8.0, 0)
+		position = right_position
+		if right_position.x + panel_size.x > viewport_rect.size.x - 12.0 and left_position.x >= 12.0:
+			position = left_position
+		position.y = clampf(anchor_position.y, 12.0, viewport_rect.size.y - panel_size.y - 12.0)
+	else:
+		var below_position := anchor_position + Vector2(0, anchor.size.y + 6.0)
+		var above_position := anchor_position + Vector2(0, -panel_size.y - 6.0)
+		position = below_position
+		if below_position.y + panel_size.y > viewport_rect.size.y - 12.0 and above_position.y >= 12.0:
+			position = above_position
+		position.y = clampf(position.y, 12.0, viewport_rect.size.y - panel_size.y - 12.0)
+	position.x = clampf(position.x, 12.0, viewport_rect.size.x - panel_size.x - 12.0)
+	panel.global_position = position
+
+
+func _render_action_costs(resolved_action: Dictionary) -> void:
+	var cost: Dictionary = resolved_action.get("cost", {})
+	_detail_cost_title.visible = not cost.is_empty()
+	if cost.is_empty():
+		return
+	for resource_id in cost.keys():
+		var resource_config: Dictionary = config.get_resource(String(resource_id))
+		_add_pair(_detail_cost_list, resource_config.get("display_name", resource_id), "-%s" % _format_value(cost[resource_id]))
+
+
+func _render_action_effects(resolved_action: Dictionary) -> void:
+	var effects: Array = resolved_action.get("effects", [])
+	_detail_effect_title.visible = not effects.is_empty()
+	if effects.is_empty():
+		return
+	for effect_variant in effects:
+		if not effect_variant is Dictionary:
+			continue
+		var effect := effect_variant as Dictionary
+		var label := Label.new()
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.text = _describe_resolved_effect(effect)
+		_detail_effect_list.add_child(label)
+
+
+func _render_action_delta(action_delta: Dictionary) -> void:
+	_detail_delta_title.visible = not action_delta.is_empty()
+	if action_delta.is_empty():
+		return
+	_render_delta_sections(_detail_delta_list, action_delta)
+
+
+func _render_forecast_panel() -> void:
+	_clear_children(_forecast_summary_list)
+	_clear_children(_forecast_breakdown_list)
+	_clear_children(_forecast_delta_list)
+	_clear_children(_forecast_projected_list)
+	var projection := _get_selected_action_projection()
+	var settlement_delta: Dictionary = projection.get("settlement_delta", {})
+	var settlement_summary: Array[String] = _build_forecast_summary_lines(settlement_delta)
+	var settlement_breakdown: Array[String] = _get_forecast_breakdown_lines(projection.get("settlement_breakdown", []))
+	if settlement_summary.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "当前没有可显示的结算预测。"
+		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_forecast_summary_list.add_child(empty_label)
+	else:
+		for summary_variant in settlement_summary:
+			var summary_label := Label.new()
+			summary_label.text = String(summary_variant)
+			summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			_forecast_summary_list.add_child(summary_label)
+	_render_forecast_breakdown(settlement_breakdown)
+	_forecast_delta_title.visible = not settlement_delta.is_empty()
+	if not settlement_delta.is_empty():
+		_render_delta_sections(_forecast_delta_list, settlement_delta)
+	var projected: Dictionary = projection.get("projected", {})
+	_forecast_projected_title.visible = not projected.is_empty()
+	if not projected.is_empty():
+		_render_projected_snapshot(_forecast_projected_list, projected)
+
+
+func _render_delta_sections(parent: GridContainer, delta_sections: Dictionary) -> void:
+	var section_names := {
+		"city_resources": "城市资源",
+		"faction_resources": "阵营资源",
+		"special_resources": "特殊资源",
+		"derived_metrics": "衍生指标",
+		"relations": "关系",
+		"resources": "资源",
+	}
+	for section_id in ["city_resources", "faction_resources", "special_resources", "derived_metrics", "relations"]:
+		var values: Dictionary = delta_sections.get(section_id, {})
+		if values.is_empty():
+			continue
+		_add_section_header(parent, String(section_names.get(section_id, section_id)))
+		for key in values.keys():
+			_add_pair(parent, _get_delta_entry_name(section_id, String(key)), _format_signed_value(values[key]))
+	var merged_values: Dictionary = delta_sections.get("resources", {})
+	if merged_values.is_empty():
+		return
+	var merged_keys: Array[String] = []
+	for key_variant in merged_values.keys():
+		var key := String(key_variant)
+		if _is_duplicate_merged_delta_key(delta_sections, key):
+			continue
+		merged_keys.append(key)
+	if merged_keys.is_empty():
+		return
+	_add_section_header(parent, String(section_names.get("resources", "resources")))
+	for key in merged_keys:
+		_add_pair(parent, _get_delta_entry_name("resources", key), _format_signed_value(merged_values.get(key, 0)))
+
+
+func _build_forecast_summary_lines(settlement_delta: Dictionary) -> Array[String]:
+	var summary: Array[String] = []
+	for section_id in ["city_resources", "faction_resources", "special_resources", "derived_metrics", "relations"]:
+		var values: Dictionary = settlement_delta.get(section_id, {})
+		for key_variant in values.keys():
+			var key := String(key_variant)
+			summary.append("%s%s" % [_get_delta_entry_name(section_id, key), _format_signed_value(values.get(key, 0))])
+	var merged_values: Dictionary = settlement_delta.get("resources", {})
+	for key_variant in merged_values.keys():
+		var key := String(key_variant)
+		if _is_duplicate_merged_delta_key(settlement_delta, key):
+			continue
+		summary.append("%s%s" % [_get_delta_entry_name("resources", key), _format_signed_value(merged_values.get(key, 0))])
+	return summary
+
+
+func _get_forecast_breakdown_lines(raw_breakdown: Array) -> Array[String]:
+	var lines: Array[String] = []
+	for entry_variant in raw_breakdown:
+		var entry := String(entry_variant).strip_edges()
+		if entry != "":
+			lines.append(entry)
+	return lines
+
+
+func _render_forecast_breakdown(settlement_breakdown: Array[String]) -> void:
+	if settlement_breakdown.is_empty():
+		_forecast_breakdown_expanded = false
+		_forecast_breakdown_button.hide()
+		_forecast_breakdown_list.hide()
+		return
+	_forecast_breakdown_button.text = "收起明细" if _forecast_breakdown_expanded else "展开明细"
+	_forecast_breakdown_button.show()
+	_forecast_breakdown_list.visible = _forecast_breakdown_expanded
+	if not _forecast_breakdown_expanded:
+		return
+	for entry in settlement_breakdown:
+		var breakdown_label := Label.new()
+		breakdown_label.text = entry
+		breakdown_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_forecast_breakdown_list.add_child(breakdown_label)
+
+
+func _is_duplicate_merged_delta_key(delta_sections: Dictionary, key: String) -> bool:
+	for section_id in ["city_resources", "faction_resources", "special_resources", "derived_metrics"]:
+		var section_values: Dictionary = delta_sections.get(section_id, {})
+		if section_values.has(key):
+			return true
+	return false
+
+
+func _render_projected_snapshot(parent: GridContainer, projected: Dictionary) -> void:
+	_render_resource_group(parent, "城市资源", projected.get("city_resources", {}), config.get_city_resource_order())
+	_render_resource_group(parent, "阵营资源", projected.get("faction_resources", {}), config.get_faction_resource_order())
+	_render_resource_group(parent, "特殊资源", projected.get("special_resources", {}), config.get_special_resource_order())
+	_render_resource_group(parent, "衍生指标", projected.get("derived_metrics", {}), config.get_derived_resource_order())
+	var relations: Dictionary = projected.get("relations", {})
+	if not relations.is_empty():
+		_add_section_header(parent, "关系")
+		for faction_id in relations.keys():
+			_add_pair(parent, config.get_faction_display_name(String(faction_id)), _format_value(relations[faction_id]))
 
 
 func _render_army() -> void:
@@ -450,49 +935,168 @@ func _get_faction_marker_modulate(is_selected: bool, is_current_actor: bool, is_
 
 func _build_action_button_text(action: Dictionary) -> String:
 	var parts: Array[String] = [String(action.get("display_name", action.get("id", "action")))]
-	parts.append("行动力:%d" % int(action.get("ap_cost", 0)))
+	parts.append("AP%d" % int(action.get("ap_cost", 0)))
+	var cost_parts: Array[String] = []
 	var cost: Dictionary = action.get("cost", {})
 	for resource_id in cost.keys():
 		var resource_config: Dictionary = config.get_resource(String(resource_id))
-		parts.append("%s:%d" % [resource_config.get("display_name", resource_id), int(cost[resource_id])])
-	var effect_text := _build_effect_text(action.get("effects", []))
-	if effect_text != "":
-		parts.append(effect_text)
+		cost_parts.append("%s%s" % [resource_config.get("display_name", resource_id), _format_value(cost[resource_id])])
+	if not cost_parts.is_empty():
+		parts.append(" / ".join(cost_parts))
+	if bool(action.get("requires_target", false)):
+		parts.append("需目标")
 	return "  ".join(parts)
 
 
-func _build_effect_text(effects: Array) -> String:
-	var parts: Array[String] = []
-	for effect in effects:
-		if not effect is Dictionary:
-			continue
-		match String(effect.get("op", "")):
-			"add":
-				var target := String(effect.get("target", ""))
-				var value := int(effect.get("value", 0))
-				var target_name := _get_effect_target_name(effect, target)
-				parts.append("%s:%+d" % [target_name, value])
-			"set":
-				var target := String(effect.get("target", ""))
-				var target_name := _get_effect_target_name(effect, target)
-				parts.append("%s=%d" % [target_name, int(effect.get("value", 0))])
-			"add_unit", "add_army_unit":
-				var unit_id := String(effect.get("unit_id", ""))
-				var unit_config: Dictionary = config.get_unit(unit_id)
-				parts.append("%s:+%d" % [unit_config.get("display_name", unit_id), int(effect.get("count", 1))])
-	return "  ".join(parts)
+func _describe_resolved_effect(effect: Dictionary) -> String:
+	var recipient_id := String(effect.get("resolved_recipient_faction_id", ""))
+	var recipient_name := "本方"
+	if recipient_id != "" and recipient_id != String(_snapshot.get("faction_id", "")):
+		recipient_name = config.get_faction_display_name(recipient_id)
+	var target_name := _get_resolved_effect_target_name(effect)
+	var resolved_value = effect.get("resolved_value", effect.get("value", 0))
+	match String(effect.get("op", "")):
+		"add":
+			return "%s：%s %s" % [recipient_name, target_name, _format_signed_value(resolved_value)]
+		"set":
+			return "%s：%s -> %s" % [recipient_name, target_name, _format_value(resolved_value)]
+		"add_unit", "add_army_unit":
+			var unit_id := String(effect.get("unit_id", ""))
+			var unit_config: Dictionary = config.get_unit(unit_id)
+			return "%s：%s +%d" % [recipient_name, unit_config.get("display_name", unit_id), int(effect.get("count", 1))]
+	return "%s：%s" % [recipient_name, target_name]
 
 
-func _get_effect_target_name(effect: Dictionary, target: String) -> String:
+func _get_resolved_effect_target_name(effect: Dictionary) -> String:
 	if String(effect.get("scope", "resources")) == "relations":
-		return config.get_faction_display_name(target)
-	var resource_config: Dictionary = config.get_resource(target)
-	return String(resource_config.get("display_name", target))
+		var relation_target := String(effect.get("resolved_target", effect.get("target", "")))
+		if relation_target == "":
+			return "目标阵营关系"
+		return "%s关系" % config.get_faction_display_name(relation_target)
+	var resource_id := String(effect.get("resolved_target", effect.get("target", "")))
+	if resource_id == "":
+		return "效果"
+	var resource_config: Dictionary = config.get_resource(resource_id)
+	return String(resource_config.get("display_name", resource_id))
 
 
-func _can_apply_action(action_id: String) -> bool:
+func _can_select_action(action: Dictionary) -> bool:
+	if not bool(_snapshot.get("is_player_turn", false)):
+		return false
+	var projection := _get_projection_for_action(String(action.get("id", "")), _build_action_payload(false))
+	var resolved_action: Dictionary = projection.get("resolved_action", {})
+	if resolved_action.is_empty():
+		return false
+	if _get_available_action_points() < int(resolved_action.get("ap_cost", action.get("ap_cost", 0))):
+		return false
+	for resource_id in resolved_action.get("cost", {}).keys():
+		if _get_snapshot_resource_amount(projection.get("current", {}), String(resource_id)) < int(resolved_action.get("cost", {}).get(resource_id, 0)):
+			return false
+	return true
+
+
+func _on_execute_action_pressed() -> void:
+	if _selected_action_id == "":
+		return
+	var payload := _build_action_payload(true)
+	action_requested.emit(_selected_action_id, payload)
+
+
+func _on_forecast_breakdown_pressed() -> void:
+	_forecast_breakdown_expanded = not _forecast_breakdown_expanded
+	_render_forecast_panel()
+
+
+func _update_execute_action_button(action: Dictionary) -> void:
+	if action.is_empty():
+		_execute_action_button.text = "执行行动"
+		_execute_action_button.tooltip_text = ""
+		_execute_action_button.disabled = true
+		return
+	_execute_action_button.text = "执行：%s" % String(action.get("display_name", action.get("id", "行动")))
+	var requires_target := bool(action.get("requires_target", false))
+	if requires_target and _selected_target_faction_id == "":
+		_execute_action_button.disabled = true
+		_execute_action_button.tooltip_text = "请先选择目标阵营。"
+		return
+	var payload := _build_action_payload(true)
+	_execute_action_button.disabled = not _can_apply_action(_selected_action_id, payload)
+	_execute_action_button.tooltip_text = "" if not _execute_action_button.disabled else "当前条件不足，无法执行该行动。"
+
+
+func _build_action_payload(include_target: bool) -> Dictionary:
+	var payload := {}
+	if include_target and _selected_target_faction_id != "":
+		payload["target_faction_id"] = _selected_target_faction_id
+	return payload
+
+
+func _get_selected_action_definition(actions: Array = []) -> Dictionary:
+	var source_actions := actions
+	if source_actions.is_empty() and game_session != null and _selected_action_group_id != "" and game_session.has_method("get_available_action_options"):
+		source_actions = game_session.get_available_action_options(_selected_action_group_id)
+	for action_variant in source_actions:
+		if not action_variant is Dictionary:
+			continue
+		var action := action_variant as Dictionary
+		if String(action.get("id", "")) == _selected_action_id:
+			return action
+	return {}
+
+
+func _sync_selected_target_for_action(action: Dictionary) -> void:
+	if action.is_empty() or not bool(action.get("requires_target", false)):
+		_selected_target_faction_id = ""
+		return
+	var option_ids: Array[String] = []
+	for option_variant in _get_selected_action_target_options():
+		if option_variant is Dictionary:
+			option_ids.append(String((option_variant as Dictionary).get("id", "")))
+	if not option_ids.has(_selected_target_faction_id):
+		_selected_target_faction_id = ""
+
+
+func _get_selected_action_target_options() -> Array:
+	if _selected_action_id == "" or game_session == null or not game_session.has_method("get_action_target_options"):
+		return []
+	return game_session.get_action_target_options(_selected_action_id, String(_snapshot.get("faction_id", "")))
+
+
+func _get_selected_action_projection() -> Dictionary:
+	return _get_projection_for_action(_selected_action_id, _build_action_payload(true))
+
+
+func _get_projection_for_action(action_id: String, payload: Dictionary) -> Dictionary:
+	if game_session == null or not game_session.has_method("get_management_projection"):
+		return {}
+	return game_session.get_management_projection(String(_snapshot.get("faction_id", "")), action_id, payload)
+
+
+func _build_target_button_text(option: Dictionary) -> String:
+	return "%s  关系%s" % [
+		String(option.get("display_name", option.get("id", "目标"))),
+		_format_signed_value(option.get("relation", 0)),
+	]
+
+
+func _get_delta_entry_name(section_id: String, key: String) -> String:
+	if section_id == "relations":
+		return config.get_faction_display_name(key)
+	var resource_config: Dictionary = config.get_resource(key)
+	return String(resource_config.get("display_name", key))
+
+
+func _get_snapshot_resource_amount(resource_snapshot: Dictionary, resource_id: String) -> int:
+	for section_id in ["resources", "city_resources", "faction_resources", "special_resources", "derived_metrics"]:
+		var values: Dictionary = resource_snapshot.get(section_id, {})
+		if values.has(resource_id):
+			return int(values.get(resource_id, 0))
+	return 0
+
+
+func _can_apply_action(action_id: String, payload: Dictionary = {}) -> bool:
 	if game_session != null and game_session.has_method("can_apply_action"):
-		return game_session.can_apply_action(action_id, {})
+		return game_session.can_apply_action(action_id, payload)
 	return true
 
 
@@ -541,6 +1145,15 @@ func _format_value(value) -> String:
 	return str(value)
 
 
+func _format_signed_value(value) -> String:
+	if value is float:
+		var float_value := snappedf(float(value), 0.01)
+		if absf(float_value) < 0.005:
+			float_value = 0.0
+		return "%+.2f" % float_value
+	return "%+d" % int(value)
+
+
 func _sync_selected_view_faction() -> void:
 	var available_ids: Array[String] = []
 	for faction in _get_management_resource_factions():
@@ -580,31 +1193,13 @@ func _get_management_resource_snapshot(faction_id: String) -> Dictionary:
 func _show_hover_panel(faction_id: String, marker: Control) -> void:
 	_hovered_faction_id = faction_id
 	_hover_visibility_request_id += 1
+	var request_id := _hover_visibility_request_id
 	_clear_children(_resource_hover_list)
 	_clear_children(_resource_hover_relation_list)
 	var resource_snapshot := _get_management_resource_snapshot(faction_id)
 	_resource_hover_title.text = "%s资源概览" % config.get_faction_display_name(String(resource_snapshot.get("faction_id", faction_id)))
 	_render_resource_snapshot(_resource_hover_list, _resource_hover_relation_list, resource_snapshot, false, true)
-	_resource_hover_panel.show()
-	_resource_hover_scroll.scroll_vertical = 0
-	_resource_hover_panel.reset_size()
-	await get_tree().process_frame
-	var viewport_rect := get_viewport_rect()
-	var max_panel_width := maxf(240.0, viewport_rect.size.x - 24.0)
-	var max_panel_height := maxf(220.0, viewport_rect.size.y - 24.0)
-	_resource_hover_panel.custom_minimum_size = Vector2(minf(320.0, max_panel_width), 0)
-	_resource_hover_panel.size = Vector2(minf(_resource_hover_panel.size.x, max_panel_width), minf(_resource_hover_panel.size.y, max_panel_height))
-	await get_tree().process_frame
-	var panel_size := _resource_hover_panel.size
-	var marker_position := marker.get_global_position()
-	var below_position := marker_position + Vector2(0, marker.size.y + 6)
-	var above_position := marker_position + Vector2(0, -panel_size.y - 6)
-	var position := below_position
-	if below_position.y + panel_size.y > viewport_rect.size.y - 12.0 and above_position.y >= 12.0:
-		position = above_position
-	position.x = clampf(position.x, 12.0, viewport_rect.size.x - panel_size.x - 12.0)
-	position.y = clampf(position.y, 12.0, viewport_rect.size.y - panel_size.y - 12.0)
-	_resource_hover_panel.global_position = position
+	await _present_hover_panel("resource", _resource_hover_panel, _resource_hover_scroll, marker, "vertical", 320.0, 240.0, request_id)
 
 
 func _hide_hover_panel() -> void:
@@ -638,18 +1233,11 @@ func _on_faction_marker_mouse_exited(faction_id: String) -> void:
 
 
 func _on_faction_marker_gui_input(event: InputEvent) -> void:
-	if not event is InputEventMouseButton:
-		return
-	var mouse_event := event as InputEventMouseButton
-	if not mouse_event.pressed:
-		return
-	if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
-		_resource_hover_scroll.scroll_vertical = maxi(_resource_hover_scroll.scroll_vertical - 48, 0)
-		accept_event()
-	elif mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-		var max_scroll := maxi(_resource_hover_scroll.get_v_scroll_bar().max_value - _resource_hover_scroll.get_v_scroll_bar().page, 0)
-		_resource_hover_scroll.scroll_vertical = mini(_resource_hover_scroll.scroll_vertical + 48, int(max_scroll))
-		accept_event()
+	_scroll_hover_panel(_resource_hover_panel, _resource_hover_scroll, event)
+
+
+func _on_resource_hover_panel_gui_input(event: InputEvent) -> void:
+	_scroll_hover_panel(_resource_hover_panel, _resource_hover_scroll, event)
 
 
 func _on_hover_panel_mouse_entered() -> void:

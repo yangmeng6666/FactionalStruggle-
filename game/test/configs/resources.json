@@ -18,7 +18,13 @@
 	"support_share": { "display_name": "支持占比", "type": "float", "scope": "derived" },
 	"ownership_share": { "display_name": "资产占比", "type": "float", "scope": "derived" },
 	"war_expectation": { "display_name": "战争预期", "type": "integer", "scope": "derived" },
-	"maintenance": { "display_name": "维护费", "type": "integer", "scope": "derived" }
+	"maintenance": { "display_name": "维护费", "type": "integer", "scope": "derived" },
+	"recruit_share": { "display_name": "征募份额", "type": "float", "scope": "derived" },
+	"city_influence": { "display_name": "城市影响力", "type": "integer", "scope": "derived" },
+	"relation_pressure": { "display_name": "关系压力", "type": "integer", "scope": "derived" },
+	"projected_asset_gain": { "display_name": "预计资产结余", "type": "integer", "scope": "derived" },
+	"projected_manpower_gain": { "display_name": "预计人力增长", "type": "integer", "scope": "derived" },
+	"readiness_margin": { "display_name": "备战余度", "type": "integer", "scope": "derived" }
   },
   "display_order": [
 	"population",
@@ -37,7 +43,14 @@
 	"mana_stones",
 	"support_share",
 	"ownership_share",
-    "war_expectation"
+	"recruit_share",
+	"city_influence",
+	"relation_pressure",
+	"projected_asset_gain",
+	"projected_manpower_gain",
+	"readiness_margin",
+	"war_expectation",
+    "maintenance"
   ],
   "city_display_order": [
 	"population",
@@ -62,6 +75,13 @@
   "derived_display_order": [
 	"support_share",
 	"ownership_share",
-    "war_expectation"
+	"recruit_share",
+	"city_influence",
+	"relation_pressure",
+	"projected_asset_gain",
+	"projected_manpower_gain",
+	"readiness_margin",
+	"war_expectation",
+    "maintenance"
   ]
 }
