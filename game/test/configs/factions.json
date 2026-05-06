@@ -5,16 +5,14 @@
 	  "display_name": "城主",
 	  "behavior_tree_id": "default_management_ai",
 	  "management_resources": {
-		"action_points": 6,
-		"manpower_pool": 100,
-		"assets": 200,
-		"gold_income": 50,
-		"asset_income": 10
+		"action_points": 12,
+		"manpower_pool": 585,
+		"assets": 200
 	  },
-	  "support_base": 50,
-	  "owned_assets": 60,
+	  "support_base": 5000,
+	  "owned_assets": 1000,
 	  "special_resources": {
-		"king_favor": 20
+		"king_favor": 2
 	  },
 	  "initial_army": [
 		{
@@ -23,8 +21,48 @@
 		}
 	  ],
 	  "relations": {
-		"church": 0,
+		"church": 5,
 		"wizard": 0,
+		"neutral": 0
+	  },
+	  "allowed_action_ids": [
+		"recruit_infantry",
+		"recruit_cavalry",
+		"get_support",
+		"harsh_tax",
+		"extort",
+		"build_defense",
+		"invest_development",
+		"capital_investment",
+		"accept_refugees",
+		"resettle_refugees",
+		"propaganda_campaign",
+		"diplomatic_aid",
+        "coerce_tribute"
+	  ]
+	},
+	"church": {
+	  "display_name": "教廷",
+	  "behavior_tree_id": "default_management_ai",
+	  "management_resources": {
+		"action_points": 12,
+		"manpower_pool": 234,
+		"assets": 200
+	  },
+	  "support_base": 2000,
+	  "owned_assets": 750,
+	  "special_resources": {
+		"faith": 20
+	  },
+	  "initial_army": [
+		{
+		  "unit_id": "infantry",
+		  "count": 2
+		}
+	  ],
+	  "relations": {
+		"castle_lord": 5,
+		"wizard": -5,
 		"neutral": 0
 	  },
 	  "allowed_action_ids": [
@@ -36,48 +74,6 @@
 		"capital_investment",
 		"accept_refugees",
 		"resettle_refugees",
-		"propaganda_campaign",
-		"diplomatic_aid",
-		"coerce_tribute",
-        "harsh_tax"
-	  ]
-	},
-	"church": {
-	  "display_name": "教廷",
-	  "behavior_tree_id": "default_management_ai",
-	  "management_resources": {
-		"action_points": 6,
-		"manpower_pool": 100,
-		"assets": 200,
-		"gold_income": 50,
-		"asset_income": 10
-	  },
-	  "support_base": 55,
-	  "owned_assets": 50,
-	  "special_resources": {
-		"faith": 24
-	  },
-	  "initial_army": [
-		{
-		  "unit_id": "infantry",
-		  "count": 2
-		}
-	  ],
-	  "relations": {
-		"castle_lord": 0,
-		"wizard": -10,
-		"neutral": 5
-	  },
-	  "allowed_action_ids": [
-		"recruit_infantry",
-		"recruit_cavalry",
-		"get_support",
-		"build_defense",
-		"invest_development",
-		"capital_investment",
-		"accept_refugees",
-		"resettle_refugees",
-		"propaganda_campaign",
 		"aid_church",
         "diplomatic_aid"
 	  ]
@@ -86,16 +82,14 @@
 	  "display_name": "巫师",
 	  "behavior_tree_id": "default_management_ai",
 	  "management_resources": {
-		"action_points": 6,
-		"manpower_pool": 100,
-		"assets": 200,
-		"gold_income": 50,
-		"asset_income": 10
+		"action_points": 12,
+		"manpower_pool": 12,
+		"assets": 200
 	  },
-	  "support_base": 45,
-	  "owned_assets": 40,
+	  "support_base": 100,
+	  "owned_assets": 300,
 	  "special_resources": {
-		"mana_stones": 18
+		"mana_stones": 5
 	  },
 	  "initial_army": [
 		{
@@ -109,7 +103,7 @@
 	  ],
 	  "relations": {
 		"castle_lord": 0,
-		"church": -10,
+		"church": -5,
 		"neutral": 0
 	  },
 	  "allowed_action_ids": [
@@ -121,24 +115,20 @@
 		"capital_investment",
 		"accept_refugees",
 		"resettle_refugees",
-		"propaganda_campaign",
 		"diplomatic_aid",
-		"coerce_tribute",
-        "extort"
+        "coerce_tribute"
 	  ]
 	},
 	"neutral": {
 	  "display_name": "中立",
 	  "behavior_tree_id": "default_management_ai",
 	  "management_resources": {
-		"action_points": 6,
-		"manpower_pool": 100,
-		"assets": 200,
-		"gold_income": 50,
-		"asset_income": 10
+		"action_points": 12,
+		"manpower_pool": 1169,
+		"assets": 200
 	  },
-	  "support_base": 50,
-	  "owned_assets": 20,
+	  "support_base": 10000,
+	  "owned_assets": 1000,
 	  "special_resources": {},
 	  "initial_army": [
 		{
@@ -148,7 +138,7 @@
 	  ],
 	  "relations": {
 		"castle_lord": 0,
-		"church": 5,
+		"church": 0,
 		"wizard": 0
 	  },
 	  "allowed_action_ids": [
@@ -158,10 +148,7 @@
 		"build_defense",
 		"invest_development",
 		"accept_refugees",
-		"propaganda_campaign",
-		"resettle_refugees",
-		"coerce_tribute",
-        "extort"
+        "resettle_refugees"
 	  ]
 	}
   }

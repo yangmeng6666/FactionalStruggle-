@@ -451,12 +451,12 @@ func _validate() -> void:
 				_errors.append("Action %s references unknown unit %s" % [action_id, unit_id])
 		for resource_id_variant in action.get("cost", {}).keys():
 			_validate_resource_reference("Action %s cost" % action_id, String(resource_id_variant), false)
-			_validate_value_spec("Action %s cost %s" % [action_id, resource_id_variant], action.get("cost", {}).get(resource_id_variant))
+			_validate_value_spec("Action %s cost %s" % [action_id, resource_id_variant], action.get("cost", {}).get(resource_id_variant), action)
 		for effect in action.get("effects", []):
 			_validate_effect_unit_reference(String(action_id), effect)
 			_validate_effect_resource_reference(String(action_id), effect)
 			if effect is Dictionary:
-				_validate_value_spec("Action %s effect value" % action_id, effect.get("value", 0))
+				_validate_value_spec("Action %s effect value" % action_id, effect.get("value", 0), action)
 
 	for tree_id in _data.get("ai_behavior_trees", {}).get("behavior_trees", {}).keys():
 		var tree: Dictionary = get_behavior_tree(String(tree_id))
@@ -497,6 +497,22 @@ func _validate_action_schema(action_id: String, action: Dictionary) -> void:
 		var target_filter := String(action.get("target_filter", "other_factions"))
 		if not ["other_factions", "player_faction", "all_factions", ""].has(target_filter):
 			_errors.append("Action %s has invalid target_filter %s" % [action_id, target_filter])
+	if action.has("exclude_target_faction_ids") and not (action.get("exclude_target_faction_ids") is Array):
+		_errors.append("Action %s exclude_target_faction_ids must be an array" % action_id)
+	for excluded_faction_id_variant in action.get("exclude_target_faction_ids", []):
+		var excluded_faction_id := String(excluded_faction_id_variant)
+		if get_faction(excluded_faction_id).is_empty():
+			_errors.append("Action %s excludes unknown faction %s" % [action_id, excluded_faction_id])
+	var value_defs = action.get("value_defs", {})
+	if action.has("value_defs") and not (value_defs is Dictionary):
+		_errors.append("Action %s value_defs must be a dictionary" % action_id)
+		value_defs = {}
+	for value_id_variant in value_defs.keys():
+		var value_id := String(value_id_variant)
+		if value_id == "":
+			_errors.append("Action %s has empty value_defs key" % action_id)
+			continue
+		_validate_value_spec("Action %s value_defs %s" % [action_id, value_id], value_defs.get(value_id_variant), action)
 	for effect in action.get("effects", []):
 		if not effect is Dictionary:
 			continue
@@ -512,10 +528,12 @@ func _validate_action_schema(action_id: String, action: Dictionary) -> void:
 			_errors.append("Action %s effect references unknown target_faction_id %s" % [action_id, effect.get("target_faction_id", "")])
 
 
-func _validate_value_spec(context: String, value) -> void:
+func _validate_value_spec(context: String, value, action: Dictionary = {}) -> void:
 	if not value is Dictionary:
 		return
-	var spec_type := String(value.get("type", "literal"))
+	if value.has("source_faction"):
+		_validate_value_source_faction(context, String(value.get("source_faction", "")), action)
+	var spec_type := "value_ref" if value.has("value_ref") else String(value.get("type", "literal"))
 	match spec_type:
 		"literal":
 			pass
@@ -536,8 +554,25 @@ func _validate_value_spec(context: String, value) -> void:
 				_errors.append("%s references unknown target_faction_id %s" % [context, target_faction_id])
 			if value.has("target_faction_id_from_payload") and String(value.get("target_faction_id_from_payload", "")) == "":
 				_errors.append("%s has empty target_faction_id_from_payload" % context)
+		"value_ref":
+			var value_id := String(value.get("value_ref", value.get("value_id", "")))
+			if value_id == "":
+				_errors.append("%s has empty value_ref" % context)
+			elif action.is_empty() or not action.get("value_defs", {}).has(value_id):
+				_errors.append("%s references unknown value_ref %s" % [context, value_id])
 		_:
 			_errors.append("%s has unsupported value spec type %s" % [context, spec_type])
+
+
+func _validate_value_source_faction(context: String, source_faction: String, action: Dictionary) -> void:
+	if source_faction == "" or source_faction == "actor":
+		return
+	if source_faction == "target_faction":
+		if not bool(action.get("requires_target", false)):
+			_errors.append("%s uses target_faction source without requires_target" % context)
+		return
+	if get_faction(source_faction).is_empty():
+		_errors.append("%s references unknown source_faction %s" % [context, source_faction])
 
 
 func _validate_effect_unit_reference(action_id: String, effect) -> void:

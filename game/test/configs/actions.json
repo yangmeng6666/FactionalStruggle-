@@ -26,14 +26,15 @@
 		"build_defense",
 		"invest_development",
 		"capital_investment",
-        "accept_refugees"
+		"accept_refugees",
+        "resettle_refugees"
 	  ]
 	},
 	"support_relations": {
 	  "display_name": "外交支援",
 	  "phase": "management",
 	  "actions": [
-		"get_support",
+		"propaganda_campaign",
 		"aid_church",
         "diplomatic_aid"
 	  ]
@@ -86,24 +87,32 @@
 	  "display_name": "横征暴敛",
 	  "phase": "management",
 	  "type": "city",
-	  "ap_cost": 1,
-	  "ap_increment": 1,
+	  "ap_cost": 4,
+	  "ap_increment": 2,
 	  "cost": {},
 	  "effects": [
 		{
-		  "target": "assets",
-		  "op": "add",
-		  "value": 80
-		},
-		{
 		  "target": "support_base",
 		  "op": "add",
-		  "value": -12
+		  "value": {
+			"type": "resource_percent",
+			"resource_id": "support_base",
+			"percent": -0.2,
+			"base": 0,
+			"round": true
+		  }
 		},
 		{
-		  "target": "king_favor",
+		  "target": "assets",
 		  "op": "add",
-		  "value": -5
+		  "value": {
+			"type": "resource_percent",
+			"resource_id": "projected_asset_gain",
+			"source_faction": "neutral",
+			"percent": 0.25,
+			"base": 0,
+			"round": true
+		  }
 		}
 	  ]
 	},
@@ -113,29 +122,47 @@
 	  "type": "relation",
 	  "ap_cost": 1,
 	  "ap_increment": 1,
+	  "requires_target": true,
+	  "target_filter": "other_factions",
+	  "value_defs": {
+		"extort_amount": {
+		  "type": "resource_percent",
+		  "resource_id": "assets",
+		  "source_faction": "target_faction",
+		  "percent": 0.3,
+		  "base": 0,
+		  "round": true
+		}
+	  },
 	  "cost": {},
 	  "effects": [
 		{
+		  "recipient": "actor",
 		  "target": "assets",
 		  "op": "add",
-		  "value": 120
+		  "value": {
+			"value_ref": "extort_amount"
+		  }
 		},
 		{
-		  "target": "neutral",
+		  "recipient": "target_faction",
+		  "target": "assets",
+		  "op": "add",
+		  "value": {
+			"value_ref": "extort_amount",
+			"multiplier": -1
+		  }
+		},
+		{
+		  "recipient": "actor",
 		  "scope": "relations",
+		  "target_from_payload": "target_faction_id",
 		  "op": "add",
-		  "value": -15
-		},
-		{
-		  "target": "support_base",
-		  "op": "add",
-		  "value": -8
-		},
-		{
-		  "target": "mana_stones",
-		  "op": "add",
-		  "value": 6
+		  "value": -2
 		}
+	  ],
+	  "exclude_target_faction_ids": [
+		"neutral"
 	  ]
 	},
 	"get_support": {
@@ -144,20 +171,30 @@
 	  "type": "relation",
 	  "ap_cost": 1,
 	  "ap_increment": 1,
-	  "cost": {
-		"assets": 20
-	  },
+	  "cost": {},
 	  "effects": [
-		{
-		  "target": "neutral",
-		  "scope": "relations",
-		  "op": "add",
-		  "value": 10
-		},
 		{
 		  "target": "support_base",
 		  "op": "add",
-		  "value": 5
+		  "value": {
+			"type": "resource_percent",
+			"resource_id": "support_base",
+			"percent": -0.1,
+			"base": 0,
+			"round": true
+		  }
+		},
+		{
+		  "target": "assets",
+		  "op": "add",
+		  "value": {
+			"type": "resource_percent",
+			"resource_id": "projected_asset_gain",
+			"source_faction": "neutral",
+			"percent": 0.1,
+			"base": 0,
+			"round": true
+		  }
 		}
 	  ]
 	},
@@ -182,26 +219,29 @@
 	  "display_name": "投资发展",
 	  "phase": "management",
 	  "type": "city",
-	  "ap_cost": 1,
-	  "ap_increment": 1,
+	  "ap_cost": 2,
+	  "ap_increment": 2,
+	  "value_defs": {
+		"investment_amount": {
+		  "type": "resource_percent",
+		  "resource_id": "owned_assets",
+		  "percent": 0.1,
+		  "base": 100,
+		  "round": true
+		}
+	  },
 	  "cost": {
-		"assets": 80
+		"assets": {
+		  "value_ref": "investment_amount"
+		}
 	  },
 	  "effects": [
 		{
-		  "target": "development",
-		  "op": "add",
-		  "value": 3
-		},
-		{
-		  "target": "gold_income",
-		  "op": "add",
-		  "value": 5
-		},
-		{
 		  "target": "owned_assets",
 		  "op": "add",
-		  "value": 2
+		  "value": {
+			"value_ref": "investment_amount"
+		  }
 		}
 	  ]
 	},
@@ -302,37 +342,26 @@
 	  "type": "city",
 	  "ap_cost": 1,
 	  "ap_increment": 1,
+	  "value_defs": {
+		"investment_amount": {
+		  "type": "resource_percent",
+		  "resource_id": "owned_assets",
+		  "percent": 0.1,
+		  "base": 100,
+		  "round": true
+		}
+	  },
 	  "cost": {
 		"assets": {
-		  "type": "resource_percent",
-		  "resource_id": "assets",
-		  "percent": 0.18,
-		  "base": 60,
-		  "round": true
+		  "value_ref": "investment_amount"
 		}
 	  },
 	  "effects": [
 		{
-		  "target": "development",
+		  "target": "owned_assets",
 		  "op": "add",
 		  "value": {
-			"type": "resource_percent",
-			"resource_id": "assets",
-			"percent": 0.015,
-			"base": 2,
-			"round": true
-		  }
-		},
-		{
-		  "target": "asset_income",
-		  "op": "add",
-		  "value": {
-			"type": "derived_percent",
-			"resource_id": "development",
-			"derived_id": "support_share",
-			"multiplier": 0.12,
-			"base": 2,
-			"round": true
+			"value_ref": "investment_amount"
 		  }
 		}
 	  ]
@@ -396,35 +425,30 @@
 	  "ap_increment": 1,
 	  "requires_target": true,
 	  "target_filter": "other_factions",
-	  "cost": {
-		"assets": 40
-	  },
+	  "exclude_target_faction_ids": [
+		"neutral"
+	  ],
+	  "cost": {},
 	  "effects": [
+		{
+		  "recipient": "target_faction",
+		  "target": "assets",
+		  "op": "add",
+		  "value": {
+			"type": "resource_percent",
+			"resource_id": "projected_asset_gain",
+			"source_faction": "target_faction",
+			"percent": 0.2,
+			"base": 0,
+			"round": true
+		  }
+		},
 		{
 		  "recipient": "actor",
 		  "scope": "relations",
 		  "target_from_payload": "target_faction_id",
 		  "op": "add",
-		  "value": 12
-		},
-		{
-		  "recipient": "target_faction",
-		  "scope": "relations",
-		  "target_faction_id": "neutral",
-		  "op": "add",
-		  "value": 8
-		},
-		{
-		  "recipient": "target_faction",
-		  "target": "assets",
-		  "op": "add",
-		  "value": 20
-		},
-		{
-		  "recipient": "actor",
-		  "target": "support_base",
-		  "op": "add",
-		  "value": 4
+		  "value": 1
 		}
 	  ]
 	},

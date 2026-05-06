@@ -110,8 +110,8 @@ func _on_campaign_state_changed(snapshot: Dictionary) -> void:
 	if config == null and game_session != null:
 		config = game_session.get("config")
 	_sync_selected_view_faction()
-	_render()
 	_update_ai_action_cue()
+	_render()
 
 
 func _render() -> void:
@@ -184,8 +184,10 @@ func _render() -> void:
 	var min_morale := int(_snapshot.get("min_corps_morale", 0))
 	_morale_label.text = "兵团士气：%d / %d" % [morale, min_morale]
 	_maintenance_label.text = "维护费：%d" % int(_snapshot.get("total_maintenance", 0))
-	_start_battle_button.disabled = not bool(_snapshot.get("can_start_battle", false))
-	if _get_available_action_points() > 0 and bool(_snapshot.get("is_player_turn", false)):
+	_start_battle_button.disabled = _are_management_interactions_locked() or not bool(_snapshot.get("can_start_battle", false))
+	if _are_management_interactions_locked():
+		_start_battle_button.tooltip_text = "其他阵营行动演出中。"
+	elif _get_available_action_points() > 0 and bool(_snapshot.get("is_player_turn", false)):
 		_start_battle_button.tooltip_text = "点击后会立即结束经营，并放弃剩余行动力。"
 
 
@@ -344,6 +346,7 @@ func _render_action_groups() -> void:
 		_selected_action_id = ""
 		_selected_target_faction_id = ""
 		return
+	var interactions_locked := _are_management_interactions_locked()
 	var group_ids: Array = []
 	for group in groups:
 		group_ids.append(String(group.get("id", "")))
@@ -355,6 +358,7 @@ func _render_action_groups() -> void:
 		button.text = String(group.get("display_name", group_id))
 		button.toggle_mode = true
 		button.button_pressed = group_id == _selected_action_group_id
+		button.disabled = interactions_locked
 		button.pressed.connect(func() -> void:
 			if _selected_action_group_id == group_id:
 				return
@@ -375,6 +379,7 @@ func _render_action_options() -> void:
 		_execute_action_button.disabled = true
 		return
 	var is_player_turn := bool(_snapshot.get("is_player_turn", false))
+	var interactions_locked := _are_management_interactions_locked()
 	var actions: Array = game_session.get_available_action_options(_selected_action_group_id)
 	var action_ids: Array[String] = []
 	for action_variant in actions:
@@ -399,7 +404,7 @@ func _render_action_options() -> void:
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.toggle_mode = true
 		button.button_pressed = action_id == _selected_action_id
-		button.disabled = not is_player_turn or not _can_select_action(action)
+		button.disabled = interactions_locked or not is_player_turn or not _can_select_action(action)
 		button.tooltip_text = ""
 		button.mouse_entered.connect(func() -> void:
 			_on_action_button_mouse_entered(hovered_action, button)
@@ -434,6 +439,7 @@ func _render_target_options(action: Dictionary) -> void:
 		_target_list.add_child(empty_label)
 		return
 	var is_player_turn := bool(_snapshot.get("is_player_turn", false))
+	var interactions_locked := _are_management_interactions_locked()
 	for option_variant in options:
 		if not option_variant is Dictionary:
 			continue
@@ -443,7 +449,7 @@ func _render_target_options(action: Dictionary) -> void:
 		button.toggle_mode = true
 		button.button_pressed = target_id == _selected_target_faction_id
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		button.disabled = not is_player_turn
+		button.disabled = interactions_locked or not is_player_turn
 		button.text = _build_target_button_text(option)
 		button.pressed.connect(func() -> void:
 			_selected_target_faction_id = target_id
@@ -882,6 +888,7 @@ func _play_next_action_cue() -> void:
 	_is_playing_action_cue = true
 	_active_action_cue_faction_id = String(cue.get("faction_id", ""))
 	_refresh_resource_faction_selector_state()
+	_render()
 	_show_action_cue(message)
 
 
@@ -905,6 +912,7 @@ func _finish_action_cue() -> void:
 	_is_playing_action_cue = false
 	_active_action_cue_faction_id = ""
 	_refresh_resource_faction_selector_state()
+	_render()
 	_play_next_action_cue()
 
 
@@ -919,6 +927,8 @@ func _hide_action_cue_immediately() -> void:
 	_is_playing_action_cue = false
 	_active_action_cue_faction_id = ""
 	_refresh_resource_faction_selector_state()
+	if not _snapshot.is_empty() and config != null:
+		_render()
 
 
 func _get_faction_marker_modulate(is_selected: bool, is_current_actor: bool, is_player_faction: bool, is_active_cue: bool) -> Color:
@@ -1014,6 +1024,10 @@ func _update_execute_action_button(action: Dictionary) -> void:
 		_execute_action_button.disabled = true
 		return
 	_execute_action_button.text = "执行：%s" % String(action.get("display_name", action.get("id", "行动")))
+	if _are_management_interactions_locked():
+		_execute_action_button.disabled = true
+		_execute_action_button.tooltip_text = "其他阵营行动演出中。"
+		return
 	var requires_target := bool(action.get("requires_target", false))
 	if requires_target and _selected_target_faction_id == "":
 		_execute_action_button.disabled = true
@@ -1134,6 +1148,10 @@ func _get_available_action_points() -> int:
 	return int(resources.get("action_points", 0))
 
 
+func _are_management_interactions_locked() -> bool:
+	return _is_playing_action_cue or not _queued_ai_action_cues.is_empty()
+
+
 func _clear_children(node: Node) -> void:
 	for child in node.get_children():
 		child.queue_free()
@@ -1233,6 +1251,9 @@ func _on_faction_marker_mouse_exited(faction_id: String) -> void:
 
 
 func _on_faction_marker_gui_input(event: InputEvent) -> void:
+	if _are_management_interactions_locked():
+		accept_event()
+		return
 	_scroll_hover_panel(_resource_hover_panel, _resource_hover_scroll, event)
 
 

@@ -3,7 +3,7 @@
   "round_parameters": {
 	"resources": {
 	  "action_points": {
-		"max": 6,
+		"max": 12,
 		"reset_each_round": true
 	  },
 	  "population": {
@@ -30,14 +30,6 @@
 		"max": 999999,
 		"reset_each_round": false
 	  },
-	  "gold_income": {
-		"max": 999999,
-		"reset_each_round": false
-	  },
-	  "asset_income": {
-		"max": 999999,
-		"reset_each_round": false
-	  },
 	  "support_base": {
 		"max": 999999,
 		"reset_each_round": false
@@ -61,12 +53,10 @@
 	}
   },
   "operations": [
-	{ "op": "add_share_of_city_resource", "target": "assets", "resource_id": "development", "share_id": "ownership_share", "multiplier": 0.6, "round": true },
-	{ "op": "add_share_of_city_resource", "target": "assets", "resource_id": "population", "share_id": "support_share", "multiplier": 0.04, "round": true },
-	{ "op": "add_scaled_resource", "target": "assets", "resource_id": "gold_income", "scale_derived_id": "city_influence", "multiplier": 0.02, "round": true },
-	{ "op": "add_scaled_resource", "target": "assets", "resource_id": "asset_income", "scale_derived_id": "support_share", "multiplier": 1.0, "round": true },
-	{ "op": "add_share_of_city_resource", "target": "manpower_pool", "resource_id": "population", "share_id": "recruit_share", "multiplier": 0.06, "round": true },
-	{ "op": "add_scaled_resource", "target": "manpower_pool", "resource_id": "population", "scale_resource_id": "recruit_rate", "scale_derived_id": "support_share", "multiplier": 0.02, "round": true },
+	{ "op": "add_from_resource", "target": "assets", "resource_id": "owned_assets", "multiplier": 1.0, "round": true },
+	{ "op": "add_scaled_resource", "target": "assets", "resource_id": "population", "scale_resource_id": "development", "scale_derived_id": "support_share", "multiplier": 0.00005, "round": true },
+	{ "op": "add_scaled_resource", "target": "assets", "resource_id": "population", "scale_resource_id": "development", "scale_derived_id": "ownership_share", "multiplier": 0.00005, "round": true },
+	{ "op": "add_scaled_resource", "target": "manpower_pool", "resource_id": "population", "scale_resource_id": "recruit_rate", "scale_derived_id": "recruit_share", "multiplier": 1.0, "round": true },
 	{ "op": "add_from_derived", "target": "support_base", "derived_id": "relation_pressure", "multiplier": -0.25, "round": true },
 	{ "op": "add_from_relation", "target": "support_base", "relation_faction_id": "neutral", "multiplier": 0.1, "round": true }
   ],

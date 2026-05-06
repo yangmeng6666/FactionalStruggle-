@@ -426,8 +426,11 @@ func _get_action_target_options(action: Dictionary, actor_faction_id: String) ->
 		return []
 	var result: Array = []
 	var target_filter := String(action.get("target_filter", "other_factions"))
+	var excluded_target_ids: Array = action.get("exclude_target_faction_ids", [])
 	for faction_id_variant in campaign_state.get("factions", {}).keys():
 		var faction_id := String(faction_id_variant)
+		if excluded_target_ids.has(faction_id):
+			continue
 		match target_filter:
 			"other_factions":
 				if faction_id == actor_faction_id:
@@ -638,16 +641,17 @@ func _resolve_action_for_faction(faction_id: String, action_id: String, payload:
 	resolved["id"] = action_id
 	resolved["payload"] = resolved_payload
 	resolved["ap_cost"] = _get_effective_action_cost(action_id)
-	resolved["cost"] = _build_action_cost(resolved, resolved_payload, faction_id)
-	resolved["effects"] = _resolve_effects_for_action(faction_id, resolved, resolved_payload)
+	var value_cache: Dictionary = {}
+	resolved["cost"] = _build_action_cost(resolved, resolved_payload, faction_id, value_cache)
+	resolved["effects"] = _resolve_effects_for_action(faction_id, resolved, resolved_payload, value_cache)
 	return resolved
 
 
-func _build_action_cost(action: Dictionary, payload: Dictionary, faction_id: String = "") -> Dictionary:
+func _build_action_cost(action: Dictionary, payload: Dictionary, faction_id: String = "", value_cache: Dictionary = {}) -> Dictionary:
 	var actor_id := faction_id if faction_id != "" else _get_player_faction_id()
 	var cost: Dictionary = {}
 	for resource_id_variant in action.get("cost", {}).keys():
-		cost[String(resource_id_variant)] = _resolve_value_spec(actor_id, action.get("cost", {}).get(resource_id_variant), payload)
+		cost[String(resource_id_variant)] = _resolve_value_spec(actor_id, action, action.get("cost", {}).get(resource_id_variant), payload, value_cache)
 	var recruit_unit_id := _get_recruit_action_unit_id(action, payload)
 	if recruit_unit_id == "":
 		return cost
@@ -659,13 +663,13 @@ func _build_action_cost(action: Dictionary, payload: Dictionary, faction_id: Str
 	return cost
 
 
-func _resolve_effects_for_action(faction_id: String, action: Dictionary, payload: Dictionary) -> Array:
+func _resolve_effects_for_action(faction_id: String, action: Dictionary, payload: Dictionary, value_cache: Dictionary = {}) -> Array:
 	var result: Array = []
 	for effect_variant in action.get("effects", []):
 		if not effect_variant is Dictionary:
 			continue
 		var effect: Dictionary = effect_variant.duplicate(true)
-		effect["resolved_value"] = _resolve_value_spec(faction_id, effect.get("value", 0), payload)
+		effect["resolved_value"] = _resolve_value_spec(faction_id, action, effect.get("value", 0), payload, value_cache)
 		var recipient := String(effect.get("recipient", "actor"))
 		effect["resolved_recipient_faction_id"] = _resolve_effect_recipient_faction_id(faction_id, recipient, payload)
 		var resolved_target := String(effect.get("target", effect.get("unit_id_from_payload", "")))
@@ -687,20 +691,22 @@ func _resolve_effect_recipient_faction_id(actor_faction_id: String, recipient: S
 	return actor_faction_id
 
 
-func _resolve_value_spec(faction_id: String, spec, payload: Dictionary = {}):
+func _resolve_value_spec(faction_id: String, action: Dictionary, spec, payload: Dictionary = {}, value_cache: Dictionary = {}):
 	if spec is int or spec is float:
 		return spec
 	if not spec is Dictionary:
 		return int(spec)
-	var spec_type := String(spec.get("type", "literal"))
+	var spec_type := "value_ref" if spec.has("value_ref") else String(spec.get("type", "literal"))
 	match spec_type:
 		"resource_percent":
-			var base_resource = _get_resource_value_for_faction(faction_id, String(spec.get("resource_id", "")))
+			var resource_faction_id := _resolve_value_source_faction_id(faction_id, spec, payload)
+			var base_resource = _get_resource_value_for_faction(resource_faction_id, String(spec.get("resource_id", "")))
 			var value = float(spec.get("base", 0)) + float(base_resource) * float(spec.get("percent", 0.0))
 			return _finalize_resolved_value(value, bool(spec.get("round", true)))
 		"derived_percent":
-			var resource_value = _get_resource_value_for_faction(faction_id, String(spec.get("resource_id", "")))
-			var derived_value = _build_derived_metrics_for_faction(faction_id).get(String(spec.get("derived_id", "")), 0.0)
+			var derived_faction_id := _resolve_value_source_faction_id(faction_id, spec, payload)
+			var resource_value = _get_resource_value_for_faction(derived_faction_id, String(spec.get("resource_id", "")))
+			var derived_value = _build_derived_metrics_for_faction(derived_faction_id).get(String(spec.get("derived_id", "")), 0.0)
 			var combined = float(spec.get("base", 0)) + float(resource_value) * float(derived_value) * float(spec.get("multiplier", 1.0))
 			return _finalize_resolved_value(combined, bool(spec.get("round", true)))
 		"per_use":
@@ -716,7 +722,31 @@ func _resolve_value_spec(faction_id: String, spec, payload: Dictionary = {}):
 			var relation_factor := float(spec.get("positive_multiplier", 1.0)) if relation_value >= 0 else float(spec.get("negative_multiplier", 1.0))
 			var relation_scaled := float(spec.get("base", 0)) + absf(float(relation_value)) * relation_factor
 			return _finalize_resolved_value(relation_scaled, bool(spec.get("round", true)))
+		"value_ref":
+			var value_id := String(spec.get("value_ref", spec.get("value_id", "")))
+			if value_id == "":
+				return 0
+			if value_cache.has(value_id):
+				return _finalize_resolved_value(float(value_cache[value_id]) * float(spec.get("multiplier", 1.0)), bool(spec.get("round", true)))
+			var value_defs: Dictionary = action.get("value_defs", {})
+			var value_spec = value_defs.get(value_id, null)
+			if value_spec == null:
+				return 0
+			var resolved_value = _resolve_value_spec(faction_id, action, value_spec, payload, value_cache)
+			value_cache[value_id] = resolved_value
+			return _finalize_resolved_value(float(resolved_value) * float(spec.get("multiplier", 1.0)), bool(spec.get("round", true)))
 	return int(spec.get("value", spec.get("base", 0)))
+
+
+func _resolve_value_source_faction_id(actor_faction_id: String, spec: Dictionary, payload: Dictionary) -> String:
+	var source_faction := String(spec.get("source_faction", "actor"))
+	match source_faction:
+		"", "actor":
+			return actor_faction_id
+		"target_faction":
+			return String(payload.get("target_faction_id", actor_faction_id))
+		_:
+			return source_faction
 
 
 func _finalize_resolved_value(value: float, should_round: bool) -> int:
@@ -1543,8 +1573,6 @@ func _build_derived_metrics_for_faction(faction_id: String) -> Dictionary:
 	var population := int(_get_resource_value_for_faction(faction_id, "population"))
 	var development := int(_get_resource_value_for_faction(faction_id, "development"))
 	var recruit_rate := float(_get_resource_value_for_faction(faction_id, "recruit_rate"))
-	var gold_income := int(_get_resource_value_for_faction(faction_id, "gold_income"))
-	var asset_income := int(_get_resource_value_for_faction(faction_id, "asset_income"))
 	var total_support := 0
 	var total_owned_assets := 0
 	for other_faction_id in campaign_state.get("factions", {}).keys():
@@ -1553,7 +1581,11 @@ func _build_derived_metrics_for_faction(faction_id: String) -> Dictionary:
 		total_owned_assets += int(_get_resource_value_for_faction(id, "owned_assets"))
 	var support_share := float(support_base) / float(total_support) if total_support > 0 else 0.0
 	var ownership_share := float(owned_assets) / float(total_owned_assets) if total_owned_assets > 0 else 0.0
-	var recruit_share := clampf(support_share * recruit_rate, 0.0, 1.0)
+	var recruit_share := support_share
+	var total_manpower_pool := float(population) * recruit_rate
+	var development_pool := float(population) * float(development) / 10000.0
+	var support_development_gain := _finalize_resolved_value(development_pool * 0.5 * support_share, true)
+	var ownership_development_gain := _finalize_resolved_value(development_pool * 0.5 * ownership_share, true)
 	var maintenance := _get_total_maintenance_for_faction(faction_id)
 	var relations: Dictionary = _get_faction_state(faction_id).get("relations", {})
 	var relation_pressure := 0
@@ -1562,8 +1594,8 @@ func _build_derived_metrics_for_faction(faction_id: String) -> Dictionary:
 		if relation_amount < 0:
 			relation_pressure += abs(relation_amount)
 	var city_influence := _finalize_resolved_value(float(support_base) * 0.4 + float(owned_assets) * 0.35 + float(development) * 0.25, true)
-	var projected_asset_gain := _finalize_resolved_value(float(development) * ownership_share * 0.6 + float(population) * support_share * 0.04 + float(gold_income) * city_influence * 0.02 + float(asset_income) * support_share, true)
-	var projected_manpower_gain := _finalize_resolved_value(float(population) * recruit_share * 0.06 + float(population) * recruit_rate * support_share * 0.02, true)
+	var projected_asset_gain := owned_assets + support_development_gain + ownership_development_gain
+	var projected_manpower_gain := _finalize_resolved_value(total_manpower_pool * support_share, true)
 	var readiness_margin := projected_asset_gain - maintenance
 	return {
 		"support_share": support_share,
