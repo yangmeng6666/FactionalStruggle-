@@ -4,13 +4,13 @@
 	"infantry": {
 	  "display_name": "步兵",
 	  "source_sheet": "兵种列表",
-	  "source_note": "MVP defaults translated from the prototype where the workbook does not define a runtime field.",
+	  "source_note": "Aligned to the workbook base infantry row for current recruitment-facing parameters.",
 	  "tags": ["human", "melee", "infantry"],
 	  "campaign": {
-		"morale": 250,
-		"upkeep": 2,
-		"manpower_cost": 30,
-		"asset_cost": 20
+		"morale": 100,
+		"upkeep": 10,
+		"manpower_cost": 10,
+		"asset_cost": 0
 	  },
 	  "battle": {
 		"scene": "res://scenes/units/squad.tscn",
@@ -25,19 +25,26 @@
 		"armor": 0,
 		"injured_ratio": 1.0,
 		"tactic": "frontline",
-		"size": 1
+		"size": 1,
+		"formation_size": 12,
+		"files": 4,
+		"ranks": 3,
+		"member_spacing": [12, 14],
+		"morale": 100,
+		"morale_damage_factor": 0.6,
+		"card_short_name": "步"
 	  }
 	},
 	"cavalry": {
-	  "display_name": "骑兵",
+	  "display_name": "轻骑兵",
 	  "source_sheet": "兵种列表",
-	  "source_note": "MVP defaults keep the existing prototype cavalry behavior data-driven.",
+	  "source_note": "Aligned to the workbook light cavalry row for current recruitment-facing parameters.",
 	  "tags": ["human", "melee", "cavalry"],
 	  "campaign": {
-		"morale": 400,
-		"upkeep": 4,
-		"manpower_cost": 45,
-		"asset_cost": 50
+		"morale": 200,
+		"upkeep": 30,
+		"manpower_cost": 20,
+		"asset_cost": 0
 	  },
 	  "battle": {
 		"scene": "res://scenes/units/squad.tscn",
@@ -52,7 +59,14 @@
 		"armor": 0,
 		"injured_ratio": 1.0,
 		"tactic": "flanker",
-		"size": 1
+		"size": 1,
+		"formation_size": 8,
+		"files": 4,
+		"ranks": 2,
+		"member_spacing": [16, 18],
+		"morale": 110,
+		"morale_damage_factor": 0.5,
+		"card_short_name": "骑"
 	  }
 	}
   }

@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "factions": {
 	"castle_lord": {
 	  "display_name": "城主",
@@ -14,10 +14,16 @@
 	  "special_resources": {
 		"king_favor": 2
 	  },
+	  "recruit_pool_id": "castle_lord_pool",
 	  "initial_army": [
 		{
-		  "unit_id": "infantry",
-		  "count": 3
+		  "corps_id": "levy_infantry"
+		},
+		{
+		  "corps_id": "cavalry_troop"
+		},
+		{
+		  "corps_id": "heavy_cavalry_troop"
 		}
 	  ],
 	  "relations": {
@@ -26,8 +32,7 @@
 		"neutral": 0
 	  },
 	  "allowed_action_ids": [
-		"recruit_infantry",
-		"recruit_cavalry",
+		"recruit_corps",
 		"get_support",
 		"harsh_tax",
 		"extort",
@@ -54,10 +59,10 @@
 	  "special_resources": {
 		"faith": 20
 	  },
+	  "recruit_pool_id": "church_pool",
 	  "initial_army": [
 		{
-		  "unit_id": "infantry",
-		  "count": 2
+		  "corps_id": "papal_guard"
 		}
 	  ],
 	  "relations": {
@@ -66,8 +71,7 @@
 		"neutral": 0
 	  },
 	  "allowed_action_ids": [
-		"recruit_infantry",
-		"recruit_cavalry",
+		"recruit_corps",
 		"get_support",
 		"build_defense",
 		"invest_development",
@@ -91,14 +95,10 @@
 	  "special_resources": {
 		"mana_stones": 5
 	  },
+	  "recruit_pool_id": "wizard_pool",
 	  "initial_army": [
 		{
-		  "unit_id": "infantry",
-		  "count": 1
-		},
-		{
-		  "unit_id": "cavalry",
-		  "count": 1
+		  "corps_id": "arcane_outriders"
 		}
 	  ],
 	  "relations": {
@@ -107,8 +107,7 @@
 		"neutral": 0
 	  },
 	  "allowed_action_ids": [
-		"recruit_infantry",
-		"recruit_cavalry",
+		"recruit_corps",
 		"get_support",
 		"build_defense",
 		"invest_development",
@@ -130,10 +129,10 @@
 	  "support_base": 10000,
 	  "owned_assets": 1000,
 	  "special_resources": {},
+	  "recruit_pool_id": "neutral_pool",
 	  "initial_army": [
 		{
-		  "unit_id": "infantry",
-		  "count": 1
+		  "corps_id": "levy_infantry"
 		}
 	  ],
 	  "relations": {
@@ -142,8 +141,7 @@
 		"wizard": 0
 	  },
 	  "allowed_action_ids": [
-		"recruit_infantry",
-		"recruit_cavalry",
+		"recruit_corps",
 		"get_support",
 		"build_defense",
 		"invest_development",

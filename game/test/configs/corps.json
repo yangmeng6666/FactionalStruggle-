@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "corps": {
+    "levy_infantry": {
+      "display_name": "征召步兵团",
+      "members": [
+        { "unit_id": "infantry", "count": 2 }
+      ]
+    },
+    "cavalry_troop": {
+      "display_name": "骑兵团",
+      "members": [
+        { "unit_id": "cavalry", "count": 1 },
+        { "unit_id": "infantry", "count": 1 }
+      ]
+    },
+    "heavy_cavalry_troop": {
+      "display_name": "重骑兵团",
+      "members": [
+        { "unit_id": "cavalry", "count": 2 }
+      ]
+    },
+    "papal_guard": {
+      "display_name": "教廷军",
+      "members": [
+        { "unit_id": "infantry", "count": 2 },
+        { "unit_id": "cavalry", "count": 1 }
+      ]
+    },
+    "arcane_outriders": {
+      "display_name": "秘法骑队",
+      "members": [
+        { "unit_id": "cavalry", "count": 1 },
+        { "unit_id": "infantry", "count": 1 }
+      ]
+    }
+  },
+  "recruit_pools": {
+    "castle_lord_pool": {
+      "display_name": "城主征募池",
+      "options": [
+        { "corps_id": "levy_infantry", "weight": 5 },
+        { "corps_id": "cavalry_troop", "weight": 3 },
+        { "corps_id": "heavy_cavalry_troop", "weight": 1 }
+      ]
+    },
+    "church_pool": {
+      "display_name": "教廷征募池",
+      "options": [
+        { "corps_id": "levy_infantry", "weight": 2 },
+        { "corps_id": "cavalry_troop", "weight": 2 },
+        { "corps_id": "papal_guard", "weight": 4 }
+      ]
+    },
+    "wizard_pool": {
+      "display_name": "巫师征募池",
+      "options": [
+        { "corps_id": "levy_infantry", "weight": 2 },
+        { "corps_id": "arcane_outriders", "weight": 4 },
+        { "corps_id": "heavy_cavalry_troop", "weight": 1 }
+      ]
+    },
+    "neutral_pool": {
+      "display_name": "中立征募池",
+      "options": [
+        { "corps_id": "levy_infantry", "weight": 5 },
+        { "corps_id": "cavalry_troop", "weight": 1 }
+      ]
+    }
+  }
+}

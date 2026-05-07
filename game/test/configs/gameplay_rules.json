@@ -11,7 +11,7 @@
 	"scenes": {
 	  "field": {
 		"scene_path": "res://scenes/battle_root.tscn",
-		"min_corps_morale": 1000,
+		"min_corps_morale": 100,
 		"default_battle_setup_id": "default_field_battle",
 		"target_refresh_interval": 0.25
 	  }

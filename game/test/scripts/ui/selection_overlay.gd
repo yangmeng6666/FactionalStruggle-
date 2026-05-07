@@ -60,12 +60,19 @@ func _select_single(world_position: Vector2) -> void:
 	if battle_root == null or game_session == null:
 		return
 
-	var squad = battle_root.get_player_squad_at_world_position(world_position)
-	if squad == null:
+	var formation = null
+	if battle_root.has_method("get_player_formation_at_world_position"):
+		formation = battle_root.get_player_formation_at_world_position(world_position)
+	else:
+		formation = battle_root.get_player_squad_at_world_position(world_position)
+	if formation == null:
 		game_session.clear_selection()
 		return
 
-	game_session.set_selected_squads([squad])
+	if game_session.has_method("set_selected_formations"):
+		game_session.set_selected_formations([formation])
+	else:
+		game_session.set_selected_squads([formation])
 
 func _select_box(screen_rect: Rect2) -> void:
 	var battle_root = _get_battle_root()
@@ -73,15 +80,19 @@ func _select_box(screen_rect: Rect2) -> void:
 	if battle_root == null or game_session == null:
 		return
 
-	var selected_squads: Array = []
-	for squad in battle_root.get_player_squads():
-		if not is_instance_valid(squad):
+	var selected_formations: Array = []
+	var player_formations: Array = battle_root.get_player_formations() if battle_root.has_method("get_player_formations") else battle_root.get_player_squads()
+	for formation in player_formations:
+		if not is_instance_valid(formation):
 			continue
-		var screen_position := _world_to_screen(squad.global_position)
+		var screen_position := _world_to_screen(formation.global_position)
 		if screen_rect.has_point(screen_position):
-			selected_squads.append(squad)
+			selected_formations.append(formation)
 
-	game_session.set_selected_squads(selected_squads)
+	if game_session.has_method("set_selected_formations"):
+		game_session.set_selected_formations(selected_formations)
+	else:
+		game_session.set_selected_squads(selected_formations)
 
 func _get_drag_rect() -> Rect2:
 	return Rect2(_drag_start, _drag_current - _drag_start).abs()

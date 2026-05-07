@@ -1,12 +1,11 @@
 {
-  "version": 3,
+  "version": 4,
   "action_groups": {
 	"recruit_new_soldiers": {
 	  "display_name": "征募新兵",
 	  "phase": "management",
 	  "actions": [
-		"recruit_infantry",
-        "recruit_cavalry"
+        "recruit_corps"
 	  ]
 	},
 	"get_money": {
@@ -47,41 +46,14 @@
     "support_relations"
   ],
   "actions": {
-	"recruit_infantry": {
-	  "display_name": "征募步兵",
+	"recruit_corps": {
+	  "display_name": "征募兵团",
 	  "phase": "management",
 	  "type": "recruit",
 	  "ap_cost": 1,
 	  "ap_increment": 1,
-	  "cost": {
-		"manpower_pool": 30,
-		"assets": 20
-	  },
-	  "effects": [
-		{
-		  "op": "add_unit",
-		  "unit_id": "infantry",
-		  "count": 1
-		}
-	  ]
-	},
-	"recruit_cavalry": {
-	  "display_name": "征募骑兵",
-	  "phase": "management",
-	  "type": "recruit",
-	  "ap_cost": 1,
-	  "ap_increment": 1,
-	  "cost": {
-		"manpower_pool": 45,
-		"assets": 50
-	  },
-	  "effects": [
-		{
-		  "op": "add_unit",
-		  "unit_id": "cavalry",
-		  "count": 1
-		}
-	  ]
+	  "cost": {},
+	  "effects": []
 	},
 	"harsh_tax": {
 	  "display_name": "横征暴敛",
@@ -162,7 +134,7 @@
 		}
 	  ],
 	  "exclude_target_faction_ids": [
-		"neutral"
+        "neutral"
 	  ]
 	},
 	"get_support": {
@@ -258,22 +230,58 @@
 		{
 		  "target": "population",
 		  "op": "add",
-		  "value": 120
-		},
-		{
-		  "target": "manpower_pool",
-		  "op": "add",
-		  "value": 20
-		},
-		{
-		  "target": "support_base",
-		  "op": "add",
-		  "value": -3
+		  "value": {
+			"type": "resource_percent",
+			"resource_id": "population",
+			"percent": 0.05,
+			"base": 0,
+			"round": true
+		  }
 		}
 	  ]
 	},
-	"aid_church": {
-	  "display_name": "援助教廷",
+	"resettle_refugees": {
+	  "display_name": "妥善安置",
+	  "phase": "management",
+	  "type": "city",
+	  "ap_cost": 2,
+	  "ap_increment": 2,
+	  "cost": {
+		"assets": 80
+	  },
+	  "effects": [
+		{
+		  "target": "population",
+		  "op": "add",
+		  "value": {
+			"type": "resource_percent",
+			"resource_id": "population",
+			"percent": 0.1,
+			"base": 0,
+			"round": true
+		  }
+		}
+	  ]
+	},
+	"capital_investment": {
+	  "display_name": "资本注入",
+	  "phase": "management",
+	  "type": "city",
+	  "ap_cost": 2,
+	  "ap_increment": 2,
+	  "cost": {
+		"assets": 120
+	  },
+	  "effects": [
+		{
+		  "target": "owned_assets",
+		  "op": "add",
+		  "value": 180
+		}
+	  ]
+	},
+	"propaganda_campaign": {
+	  "display_name": "宣传攻势",
 	  "phase": "management",
 	  "type": "relation",
 	  "ap_cost": 1,
@@ -283,137 +291,27 @@
 	  },
 	  "effects": [
 		{
-		  "target": "church",
-		  "scope": "relations",
-		  "op": "add",
-		  "value": 10
-		},
-		{
 		  "target": "support_base",
 		  "op": "add",
-		  "value": 4
-		},
-		{
-		  "target": "faith",
-		  "op": "add",
-		  "value": 8
+		  "value": 150
 		}
 	  ]
 	},
-	"propaganda_campaign": {
-	  "display_name": "宣传动员",
-	  "phase": "management",
-	  "type": "city",
-	  "ap_cost": 1,
-	  "ap_increment": 1,
-	  "cost": {
-		"assets": {
-		  "type": "resource_percent",
-		  "resource_id": "assets",
-		  "percent": 0.08,
-		  "base": 10,
-		  "round": true
-		}
-	  },
-	  "effects": [
-		{
-		  "target": "support_base",
-		  "op": "add",
-		  "value": {
-			"type": "derived_percent",
-			"resource_id": "development",
-			"derived_id": "ownership_share",
-			"multiplier": 0.2,
-			"base": 4,
-			"round": true
-		  }
-		},
-		{
-		  "target": "neutral",
-		  "scope": "relations",
-		  "op": "add",
-		  "value": 6
-		}
-	  ]
-	},
-	"capital_investment": {
-	  "display_name": "追加投资",
-	  "phase": "management",
-	  "type": "city",
-	  "ap_cost": 1,
-	  "ap_increment": 1,
-	  "value_defs": {
-		"investment_amount": {
-		  "type": "resource_percent",
-		  "resource_id": "owned_assets",
-		  "percent": 0.1,
-		  "base": 100,
-		  "round": true
-		}
-	  },
-	  "cost": {
-		"assets": {
-		  "value_ref": "investment_amount"
-		}
-	  },
-	  "effects": [
-		{
-		  "target": "owned_assets",
-		  "op": "add",
-		  "value": {
-			"value_ref": "investment_amount"
-		  }
-		}
-	  ]
-	},
-	"coerce_tribute": {
-	  "display_name": "逼取贡赋",
+	"aid_church": {
+	  "display_name": "资助教廷",
 	  "phase": "management",
 	  "type": "relation",
 	  "ap_cost": 1,
 	  "ap_increment": 1,
-	  "requires_target": true,
-	  "target_filter": "other_factions",
-	  "cost": {},
+	  "cost": {
+		"assets": 40
+	  },
 	  "effects": [
 		{
-		  "recipient": "actor",
-		  "target": "assets",
-		  "op": "add",
-		  "value": {
-			"type": "relation_scale",
-			"target_faction_id_from_payload": "target_faction_id",
-			"positive_multiplier": 2,
-			"negative_multiplier": 1,
-			"base": 50,
-			"round": true
-		  }
-		},
-		{
-		  "recipient": "target_faction",
-		  "target": "assets",
-		  "op": "add",
-		  "value": -30
-		},
-		{
-		  "recipient": "actor",
 		  "scope": "relations",
-		  "target_from_payload": "target_faction_id",
+		  "target": "church",
 		  "op": "add",
-		  "value": -18
-		},
-		{
-		  "recipient": "target_faction",
-		  "scope": "relations",
-		  "target_faction_id": "neutral",
-		  "op": "add",
-		  "value": -10
-		},
-		{
-		  "recipient": "actor",
-		  "target": "support_base",
-		  "op": "add",
-		  "value": -6
+		  "value": 1
 		}
 	  ]
 	},
@@ -421,28 +319,14 @@
 	  "display_name": "外交援助",
 	  "phase": "management",
 	  "type": "relation",
-	  "ap_cost": 1,
-	  "ap_increment": 1,
+	  "ap_cost": 2,
+	  "ap_increment": 2,
 	  "requires_target": true,
 	  "target_filter": "other_factions",
-	  "exclude_target_faction_ids": [
-		"neutral"
-	  ],
-	  "cost": {},
+	  "cost": {
+		"assets": 60
+	  },
 	  "effects": [
-		{
-		  "recipient": "target_faction",
-		  "target": "assets",
-		  "op": "add",
-		  "value": {
-			"type": "resource_percent",
-			"resource_id": "projected_asset_gain",
-			"source_faction": "target_faction",
-			"percent": 0.2,
-			"base": 0,
-			"round": true
-		  }
-		},
 		{
 		  "recipient": "actor",
 		  "scope": "relations",
@@ -450,67 +334,59 @@
 		  "op": "add",
 		  "value": 1
 		}
+	  ],
+	  "exclude_target_faction_ids": [
+        "neutral"
 	  ]
 	},
-	"resettle_refugees": {
-	  "display_name": "安置流民",
+	"coerce_tribute": {
+	  "display_name": "强索贡赋",
 	  "phase": "management",
-	  "type": "city",
-	  "ap_cost": 1,
-	  "ap_increment": 1,
-	  "cost": {
-		"assets": {
-		  "type": "per_use",
-		  "base": 18,
-		  "increment": 8
+	  "type": "relation",
+	  "ap_cost": 4,
+	  "ap_increment": 2,
+	  "requires_target": true,
+	  "target_filter": "other_factions",
+	  "value_defs": {
+		"tribute_amount": {
+		  "type": "resource_percent",
+		  "resource_id": "projected_asset_gain",
+		  "source_faction": "target_faction",
+		  "percent": 0.25,
+		  "base": 0,
+		  "round": true
 		}
 	  },
+	  "cost": {},
 	  "effects": [
 		{
-		  "target": "population",
+		  "recipient": "actor",
+		  "target": "assets",
 		  "op": "add",
 		  "value": {
-			"type": "resource_percent",
-			"resource_id": "development",
-			"percent": 4.0,
-			"base": 90,
-			"round": true
+			"value_ref": "tribute_amount"
 		  }
 		},
 		{
-		  "target": "manpower_pool",
+		  "recipient": "target_faction",
+		  "target": "assets",
 		  "op": "add",
 		  "value": {
-			"type": "derived_percent",
-			"resource_id": "population",
-			"derived_id": "support_share",
-			"multiplier": 0.015,
-			"base": 12,
-			"round": true
+			"value_ref": "tribute_amount",
+			"multiplier": -1
 		  }
 		},
 		{
-		  "target": "support_base",
+		  "recipient": "actor",
+		  "scope": "relations",
+		  "target_from_payload": "target_faction_id",
 		  "op": "add",
-		  "value": 3
+		  "value": -1
 		}
+	  ],
+	  "exclude_target_faction_ids": [
+        "neutral"
 	  ]
 	}
-  },
-  "display_order": [
-	"recruit_infantry",
-	"recruit_cavalry",
-	"harsh_tax",
-	"extort",
-	"get_support",
-	"propaganda_campaign",
-	"build_defense",
-	"invest_development",
-	"capital_investment",
-	"accept_refugees",
-	"resettle_refugees",
-	"aid_church",
-	"coerce_tribute",
-    "diplomatic_aid"
-  ]
+  }
 }

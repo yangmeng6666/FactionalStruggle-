@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scripts/core/flow_controller.gd" id="3_flw_ctrl"]
 [ext_resource type="Script" path="res://scripts/ui/selection_overlay.gd" id="4_8f6k1"]
 [ext_resource type="Script" path="res://scripts/ui/day_hud.gd" id="5_o7m9c"]
+[ext_resource type="PackedScene" path="res://scenes/ui/battle_unit_bar.tscn" id="6_battle_bar"]
 
 [node name="Node" type="Node" unique_id=1767838926]
 
@@ -28,3 +29,5 @@ layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
+
+[node name="BattleUnitBar" parent="UIRoot" instance=ExtResource("6_battle_bar")]

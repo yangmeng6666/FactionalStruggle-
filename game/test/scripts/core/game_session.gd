@@ -6,6 +6,8 @@ signal campaign_state_changed(snapshot: Dictionary)
 signal campaign_log_added(message: String)
 
 const CONFIG_DATABASE_SCRIPT := preload("res://scripts/data/config_database.gd")
+const RECRUIT_ACTION_ID := "recruit_corps"
+const RECRUIT_OPTION_COUNT := 3
 
 var current_phase: String = ""
 var config = null
@@ -13,6 +15,7 @@ var campaign_state: Dictionary = {}
 var _selected_squads: Array = []
 var _config_loaded: bool = false
 var _player_faction_id: String = ""
+var _next_corps_instance_serial: int = 1
 
 
 func _ready() -> void:
@@ -39,6 +42,7 @@ func start_new_campaign(faction_id: String = "") -> void:
 	_player_faction_id = selected_faction_id
 
 	var factions: Dictionary = {}
+	_next_corps_instance_serial = 1
 	for current_faction_id in config.get_faction_ids():
 		var runtime_faction_id := String(current_faction_id)
 		var faction_resources: Dictionary = config.get_faction_initial_management_resources(runtime_faction_id)
@@ -49,7 +53,7 @@ func start_new_campaign(faction_id: String = "") -> void:
 			"settlement_summary": [],
 			"special_resources": config.get_faction_initial_special_resources(runtime_faction_id),
 			"relations": config.get_faction(runtime_faction_id).get("relations", {}).duplicate(true),
-			"army": _copy_army(config.get_faction(runtime_faction_id).get("initial_army", [])),
+			"army": _normalize_army_runtime(config.get_faction(runtime_faction_id).get("initial_army", [])),
 		}
 
 	campaign_state = {
@@ -99,6 +103,7 @@ func get_campaign_snapshot() -> Dictionary:
 		"current_actor_name": _get_management_actor_display_name(current_actor_id),
 		"is_player_turn": _is_player_turn(),
 	}
+	snapshot["pending_recruit_options"] = _get_pending_recruit_options_for_faction(player_faction_id)
 	snapshot["total_morale"] = get_total_corps_morale()
 	snapshot["total_maintenance"] = get_total_maintenance()
 	snapshot["min_corps_morale"] = _get_upcoming_battle_min_corps_morale() if config != null else 0
@@ -113,7 +118,12 @@ func try_apply_action(action_id: String, payload: Dictionary = {}) -> bool:
 		_add_campaign_log("当前不是你的行动时机。")
 		campaign_state_changed.emit(get_campaign_snapshot())
 		return false
-	if not _apply_action_for_faction(_get_player_faction_id(), action_id, payload, true):
+	var player_faction_id := _get_player_faction_id()
+	if action_id == RECRUIT_ACTION_ID and not payload.has("selected_corps_id"):
+		var recruit_started := _begin_recruit_roll_for_faction(player_faction_id, true)
+		campaign_state_changed.emit(get_campaign_snapshot())
+		return recruit_started
+	if not _apply_action_for_faction(player_faction_id, action_id, payload, true):
 		campaign_state_changed.emit(get_campaign_snapshot())
 		return false
 
@@ -127,6 +137,8 @@ func can_apply_action(action_id: String, payload: Dictionary = {}) -> bool:
 		return false
 	if not _is_player_turn():
 		return false
+	if action_id == RECRUIT_ACTION_ID and not payload.has("selected_corps_id"):
+		return _can_begin_recruit_roll_for_faction(_get_player_faction_id())
 	return _can_apply_action_for_faction(_get_player_faction_id(), action_id, payload)
 
 
@@ -137,7 +149,7 @@ func can_start_battle() -> bool:
 		return false
 	if _has_any_manageable_faction() and not _is_player_turn():
 		return false
-	return get_total_corps_morale() >= _get_upcoming_battle_min_corps_morale() and not _get_player_army().is_empty()
+	return get_total_corps_morale() >= _get_upcoming_battle_min_corps_morale() and not _normalize_army_runtime(_get_player_army()).is_empty()
 
 
 func build_battle_setup() -> Dictionary:
@@ -156,8 +168,8 @@ func build_battle_setup() -> Dictionary:
 	battle_setup["player_faction_id"] = _get_player_faction_id()
 	battle_setup["player_faction_name"] = config.get_faction_display_name(_get_player_faction_id())
 	battle_setup["enemy_name"] = String(round_battle.get("enemy_name", battle_setup.get("enemy_name", "敌军")))
-	battle_setup["player_army"] = _copy_army(_get_player_army())
-	battle_setup["enemy_army"] = _copy_army(round_battle.get("enemy_army", battle_setup.get("default_enemy_army", [])))
+	battle_setup["player_army"] = _flatten_corps_army_for_battle(_get_player_army())
+	battle_setup["enemy_army"] = _flatten_corps_army_for_battle(round_battle.get("enemy_army", battle_setup.get("default_enemy_army", [])))
 	return battle_setup
 
 
@@ -196,7 +208,9 @@ func resolve_battle_round(result: Dictionary) -> void:
 	var outcome := _normalize_battle_outcome(result)
 	var faction_state := _get_faction_state(player_faction_id)
 	if result.get("player_army", null) is Array:
-		faction_state["army"] = _copy_army(result.get("player_army", []))
+		faction_state["army"] = _normalize_army_runtime(result.get("player_army", []))
+	elif result.get("player_survivors_by_corps", null) is Dictionary:
+		faction_state["army"] = _rebuild_corps_army_from_survivors(result.get("player_survivors_by_corps", {}), faction_state.get("army", []))
 	elif result.get("player_survivors", null) is Dictionary:
 		faction_state["army"] = _build_army_from_survivors(result.get("player_survivors", {}), faction_state.get("army", []))
 	campaign_state["last_battle_outcome"] = outcome
@@ -219,16 +233,7 @@ func resolve_battle_round(result: Dictionary) -> void:
 
 
 func get_total_corps_morale() -> int:
-	if config == null:
-		return 0
-
-	var total := 0
-	for army_entry in _get_player_army():
-		var unit_id := String(army_entry.get("unit_id", ""))
-		var unit_config: Dictionary = config.get_unit(unit_id)
-		var campaign: Dictionary = unit_config.get("campaign", {})
-		total += int(campaign.get("morale", 0)) * int(army_entry.get("count", 0))
-	return total
+	return _get_total_army_metric(_get_player_army(), "morale")
 
 
 func get_total_maintenance() -> int:
@@ -238,12 +243,12 @@ func get_total_maintenance() -> int:
 func get_troop_selection_entries() -> Array:
 	if not _ensure_config_loaded():
 		return []
-	var army := _copy_army(_get_player_army())
+	var army := _normalize_army_runtime(_get_player_army())
 	if army.is_empty():
 		var battle_scene_id := _resolve_battle_scene_id(config.get_round_battle(int(campaign_state.get("round", 1))))
 		var default_setup: Dictionary = config.get_battle_setup(config.get_default_battle_setup_id(battle_scene_id))
-		army = _copy_army(default_setup.get("default_player_army", []))
-	return army
+		army = _normalize_army_runtime(default_setup.get("default_player_army", []))
+	return _copy_army(army)
 
 
 func get_available_action_groups() -> Array:
@@ -450,39 +455,47 @@ func _get_action_target_options(action: Dictionary, actor_faction_id: String) ->
 	return result
 
 
-func set_selected_squads(squads: Array) -> void:
-	_cleanup_selected_squads()
+func set_selected_formations(formations: Array) -> void:
+	_cleanup_selected_formations()
 
 	var next_selected: Array = []
 	var seen: Dictionary = {}
-	for squad in squads:
-		if not is_instance_valid(squad):
+	for formation in formations:
+		if not is_instance_valid(formation):
 			continue
-		var instance_id: int = squad.get_instance_id()
+		var instance_id: int = formation.get_instance_id()
 		if seen.has(instance_id):
 			continue
 		seen[instance_id] = true
-		next_selected.append(squad)
+		next_selected.append(formation)
 
-	for squad in _selected_squads:
-		if is_instance_valid(squad) and squad.has_method("set_selected") and not next_selected.has(squad):
-			squad.set_selected(false)
+	for formation in _selected_squads:
+		if is_instance_valid(formation) and formation.has_method("set_selected") and not next_selected.has(formation):
+			formation.set_selected(false)
 
-	for squad in next_selected:
-		if squad.has_method("set_selected"):
-			squad.set_selected(true)
+	for formation in next_selected:
+		if formation.has_method("set_selected"):
+			formation.set_selected(true)
 
 	_selected_squads = next_selected
 	selection_changed.emit(_selected_squads.size())
 
 
+func set_selected_squads(squads: Array) -> void:
+	set_selected_formations(squads)
+
+
 func clear_selection() -> void:
-	set_selected_squads([])
+	set_selected_formations([])
+
+
+func get_selected_formations() -> Array:
+	_cleanup_selected_formations()
+	return _selected_squads.duplicate()
 
 
 func get_selected_squads() -> Array:
-	_cleanup_selected_squads()
-	return _selected_squads.duplicate()
+	return get_selected_formations()
 
 
 func set_phase(phase: String) -> void:
@@ -626,6 +639,8 @@ func _apply_resolved_action_for_faction(faction_id: String, resolved_action: Dic
 		_add_resource_value_for_faction(faction_id, String(resource_id), -int(resolved_action.get("cost", {}).get(resource_id, 0)))
 		_apply_resource_caps_to_faction(faction_id, [String(resource_id)])
 	_apply_effects(faction_id, resolved_action.get("effects", []), resolved_action.get("payload", {}))
+	if String(resolved_action.get("id", "")) == RECRUIT_ACTION_ID:
+		_set_pending_recruit_options_for_faction(faction_id, [])
 	if not is_projection:
 		_add_campaign_log(_build_action_log(faction_id, resolved_action, resolved_action.get("payload", {}), ap_cost))
 	return true
@@ -635,6 +650,8 @@ func _resolve_action_for_faction(faction_id: String, action_id: String, payload:
 	var action: Dictionary = config.get_action(action_id)
 	if action.is_empty():
 		return {}
+	if action_id == RECRUIT_ACTION_ID:
+		return _resolve_recruit_action_for_faction(faction_id, action, payload)
 	var resolved_payload := payload.duplicate(true)
 	resolved_payload["action_id"] = action_id
 	var resolved := action.duplicate(true)
@@ -652,14 +669,17 @@ func _build_action_cost(action: Dictionary, payload: Dictionary, faction_id: Str
 	var cost: Dictionary = {}
 	for resource_id_variant in action.get("cost", {}).keys():
 		cost[String(resource_id_variant)] = _resolve_value_spec(actor_id, action, action.get("cost", {}).get(resource_id_variant), payload, value_cache)
-	var recruit_unit_id := _get_recruit_action_unit_id(action, payload)
-	if recruit_unit_id == "":
+	var recruit_corps_id := _get_recruit_action_corps_id(action, payload)
+	if recruit_corps_id == "":
 		return cost
-	var unit_campaign: Dictionary = config.get_unit(recruit_unit_id).get("campaign", {})
-	if unit_campaign.has("manpower_cost"):
-		cost["manpower_pool"] = int(unit_campaign.get("manpower_cost", 0))
-	if unit_campaign.has("asset_cost"):
-		cost["assets"] = int(unit_campaign.get("asset_cost", 0))
+	for member in _get_corps_members_from_id(recruit_corps_id):
+		var unit_id := String(member.get("unit_id", ""))
+		var count := int(member.get("count", 0))
+		var unit_campaign: Dictionary = config.get_unit(unit_id).get("campaign", {})
+		if unit_campaign.has("manpower_cost"):
+			cost["manpower_pool"] = int(cost.get("manpower_pool", 0)) + int(unit_campaign.get("manpower_cost", 0)) * count
+		if unit_campaign.has("asset_cost"):
+			cost["assets"] = int(cost.get("assets", 0)) + int(unit_campaign.get("asset_cost", 0)) * count
 	return cost
 
 
@@ -753,18 +773,10 @@ func _finalize_resolved_value(value: float, should_round: bool) -> int:
 	return int(round(value)) if should_round else int(value)
 
 
-func _get_recruit_action_unit_id(action: Dictionary, payload: Dictionary) -> String:
+func _get_recruit_action_corps_id(action: Dictionary, payload: Dictionary) -> String:
 	if String(action.get("type", "")) != "recruit":
 		return ""
-	for effect_variant in action.get("effects", []):
-		if not effect_variant is Dictionary:
-			continue
-		var effect: Dictionary = effect_variant
-		var effect_op := String(effect.get("op", ""))
-		if effect_op != "add_unit" and effect_op != "add_army_unit":
-			continue
-		return String(effect.get("unit_id", payload.get(String(effect.get("unit_id_from_payload", "unit_id")), "")))
-	return ""
+	return String(payload.get("selected_corps_id", ""))
 
 
 func _apply_effects(faction_id: String, effects: Array, payload: Dictionary) -> void:
@@ -804,18 +816,30 @@ func _apply_effects(faction_id: String, effects: Array, payload: Dictionary) -> 
 				var unit_id := String(effect.get("unit_id", payload.get(String(effect.get("unit_id_from_payload", "unit_id")), "")))
 				var count := int(effect.get("count", payload.get(String(effect.get("count_from_payload", "count")), 1)))
 				_add_army_unit(recipient_faction_id, unit_id, maxi(1, count))
+			"add_corps":
+				var corps_id := String(effect.get("corps_id", payload.get("selected_corps_id", "")))
+				_add_corps_to_army(recipient_faction_id, corps_id)
 
 
 func _add_army_unit(faction_id: String, unit_id: String, count: int) -> void:
 	if unit_id == "" or config.get_unit(unit_id).is_empty():
 		return
 	var faction_state := _get_faction_state(faction_id)
-	var army: Array = faction_state.get("army", [])
-	for entry in army:
-		if String(entry.get("unit_id", "")) == unit_id:
-			entry["count"] = int(entry.get("count", 0)) + count
-			return
-	army.append({ "unit_id": unit_id, "count": count })
+	var army := _normalize_army_runtime(faction_state.get("army", []))
+	army.append({
+		"corps_instance_id": _allocate_corps_instance_id(),
+		"corps_id": unit_id,
+		"members": [{"unit_id": unit_id, "count": count}],
+	})
+	faction_state["army"] = army
+
+
+func _add_corps_to_army(faction_id: String, corps_id: String) -> void:
+	if corps_id == "":
+		return
+	var faction_state := _get_faction_state(faction_id)
+	var army := _normalize_army_runtime(faction_state.get("army", []))
+	army.append(_instantiate_corps_runtime(corps_id))
 	faction_state["army"] = army
 
 
@@ -916,6 +940,14 @@ func _build_runtime_ai_action_selector(action_ids: Array) -> Dictionary:
 
 func _build_action_payload_for_faction(faction_id: String, action: Dictionary) -> Dictionary:
 	var payload := {}
+	var action_id := String(action.get("id", ""))
+	if action_id == RECRUIT_ACTION_ID:
+		if _get_pending_recruit_options_for_faction(faction_id).is_empty():
+			_begin_recruit_roll_for_faction(faction_id, false)
+		var corps_id := _pick_ai_recruit_corps_id(faction_id)
+		if corps_id != "":
+			payload["selected_corps_id"] = corps_id
+		return payload
 	if not bool(action.get("requires_target", false)):
 		return payload
 	var target_options := _get_action_target_options(action, faction_id)
@@ -966,9 +998,16 @@ func _evaluate_ai_condition(faction_id: String, node: Dictionary) -> bool:
 		"army_count_below":
 			var unit_id := String(node.get("unit_id", ""))
 			var total := 0
-			for entry in faction_state.get("army", []):
-				if unit_id == "" or String(entry.get("unit_id", "")) == unit_id:
-					total += int(entry.get("count", 0))
+			for corps_entry in _normalize_army_runtime(faction_state.get("army", [])):
+				if unit_id == "":
+					total += 1
+					continue
+				for member_variant in corps_entry.get("members", []):
+					if not member_variant is Dictionary:
+						continue
+					var member: Dictionary = member_variant
+					if String(member.get("unit_id", "")) == unit_id:
+						total += int(member.get("count", 0))
 			return total < int(node.get("value", 0))
 	return false
 
@@ -1018,6 +1057,11 @@ func _build_action_log_effect_text(effects: Array, payload: Dictionary) -> Strin
 				var unit_config: Dictionary = config.get_unit(unit_id)
 				var count := int(effect.get("count", payload.get(String(effect.get("count_from_payload", "count")), 1)))
 				parts.append("%s+%d" % [unit_config.get("display_name", unit_id), maxi(1, count)])
+			"add_corps":
+				var corps_id := String(effect.get("corps_id", payload.get("selected_corps_id", "")))
+				if corps_id == "":
+					continue
+				parts.append("%s+1" % _get_corps_display_name_from_id(corps_id))
 	return "、".join(parts) if not parts.is_empty() else "无"
 
 
@@ -1048,7 +1092,7 @@ func _copy_army(source: Array) -> Array:
 func _build_army_from_survivors(survivors: Dictionary, previous_army: Array = []) -> Array:
 	var army: Array = []
 	var added_units: Dictionary = {}
-	for entry in previous_army:
+	for entry in _flatten_corps_army_for_battle(previous_army):
 		if not entry is Dictionary:
 			continue
 		var unit_id := String(entry.get("unit_id", ""))
@@ -1070,7 +1114,328 @@ func _build_army_from_survivors(survivors: Dictionary, previous_army: Array = []
 			"unit_id": String(unit_id),
 			"count": count,
 		})
-	return army
+	return _normalize_army_runtime(army)
+
+
+
+func _get_pending_recruit_options_for_faction(faction_id: String) -> Array:
+	var pending_recruits: Dictionary = _get_management_state().get("pending_recruits", {})
+	return pending_recruits.get(faction_id, []).duplicate(true)
+
+
+func _set_pending_recruit_options_for_faction(faction_id: String, options: Array) -> void:
+	var management := _get_management_state()
+	var pending_recruits: Dictionary = management.get("pending_recruits", {}).duplicate(true)
+	if options.is_empty():
+		pending_recruits.erase(faction_id)
+	else:
+		pending_recruits[faction_id] = options.duplicate(true)
+	management["pending_recruits"] = pending_recruits
+	campaign_state["management"] = management
+
+
+func _begin_recruit_roll_for_faction(faction_id: String, add_log: bool = false) -> bool:
+	if not _can_begin_recruit_roll_for_faction(faction_id):
+		if add_log:
+			_add_campaign_log("当前无法发起征募。")
+		return false
+	var options := _get_pending_recruit_options_for_faction(faction_id)
+	if options.is_empty():
+		options = _roll_recruit_options_for_faction(faction_id)
+		_set_pending_recruit_options_for_faction(faction_id, options)
+	if add_log and not options.is_empty():
+		var option_names: Array[String] = []
+		for option_variant in options:
+			if option_variant is Dictionary:
+				option_names.append(String((option_variant as Dictionary).get("display_name", "兵团")))
+		_add_campaign_log("%s开始征募：%s。" % [config.get_faction_display_name(faction_id), "、".join(option_names)])
+	return not options.is_empty()
+
+
+func _can_begin_recruit_roll_for_faction(faction_id: String) -> bool:
+	if faction_id == "":
+		return false
+	if _get_management_action_points(faction_id) < _get_effective_action_cost(RECRUIT_ACTION_ID):
+		return false
+	if not _can_faction_select_action(faction_id, RECRUIT_ACTION_ID):
+		return false
+	if not _get_pending_recruit_options_for_faction(faction_id).is_empty():
+		return _has_affordable_pending_recruit_option(faction_id)
+	return _has_affordable_recruit_option_for_faction(faction_id)
+
+
+func _has_affordable_pending_recruit_option(faction_id: String) -> bool:
+	for option_variant in _get_pending_recruit_options_for_faction(faction_id):
+		if option_variant is Dictionary and _can_afford_recruit_corps(faction_id, String((option_variant as Dictionary).get("corps_id", ""))):
+			return true
+	return false
+
+
+func _has_affordable_recruit_option_for_faction(faction_id: String) -> bool:
+	for corps_id_variant in _get_recruit_pool_corps_ids(faction_id):
+		if _can_afford_recruit_corps(faction_id, String(corps_id_variant)):
+			return true
+	return false
+
+
+func _can_afford_recruit_corps(faction_id: String, corps_id: String) -> bool:
+	if corps_id == "":
+		return false
+	var recruit_action: Dictionary = config.get_action(RECRUIT_ACTION_ID)
+	var cost := _build_action_cost(recruit_action, {"selected_corps_id": corps_id}, faction_id)
+	for resource_id in cost.keys():
+		if _get_resource_value_for_faction(faction_id, String(resource_id)) < int(cost.get(resource_id, 0)):
+			return false
+	return true
+
+
+func _roll_recruit_options_for_faction(faction_id: String) -> Array:
+	var options: Array = []
+	for _i in range(RECRUIT_OPTION_COUNT):
+		var corps_id := _roll_recruit_corps_id(faction_id)
+		if corps_id != "":
+			options.append(_build_pending_recruit_option(corps_id))
+	return options
+
+
+func _roll_recruit_corps_id(faction_id: String) -> String:
+	var pool: Dictionary = config.get_recruit_pool(config.get_faction_recruit_pool_id(faction_id))
+	var total_weight := 0
+	for option_variant in pool.get("options", []):
+		if option_variant is Dictionary:
+			total_weight += maxi(0, int((option_variant as Dictionary).get("weight", 0)))
+	if total_weight <= 0:
+		return ""
+	var roll := randi_range(1, total_weight)
+	var running_weight := 0
+	for option_variant in pool.get("options", []):
+		if not option_variant is Dictionary:
+			continue
+		var option := option_variant as Dictionary
+		running_weight += maxi(0, int(option.get("weight", 0)))
+		if roll <= running_weight:
+			return String(option.get("corps_id", ""))
+	return ""
+
+
+func _build_pending_recruit_option(corps_id: String) -> Dictionary:
+	return {
+		"corps_id": corps_id,
+		"display_name": _get_corps_display_name_from_id(corps_id),
+		"members": _get_corps_members_from_id(corps_id),
+		"morale": _get_total_members_metric(_get_corps_members_from_id(corps_id), "morale"),
+		"maintenance": _get_total_members_metric(_get_corps_members_from_id(corps_id), "upkeep"),
+		"cost": _build_action_cost(config.get_action(RECRUIT_ACTION_ID), {"selected_corps_id": corps_id}),
+	}
+
+
+func _pick_ai_recruit_corps_id(faction_id: String) -> String:
+	for option_variant in _get_pending_recruit_options_for_faction(faction_id):
+		if option_variant is Dictionary:
+			var corps_id := String((option_variant as Dictionary).get("corps_id", ""))
+			if _can_afford_recruit_corps(faction_id, corps_id):
+				return corps_id
+	for corps_id_variant in _get_recruit_pool_corps_ids(faction_id):
+		var corps_id := String(corps_id_variant)
+		if _can_afford_recruit_corps(faction_id, corps_id):
+			return corps_id
+	return ""
+
+
+func _get_recruit_pool_corps_ids(faction_id: String) -> Array:
+	var result: Array = []
+	var pool: Dictionary = config.get_recruit_pool(config.get_faction_recruit_pool_id(faction_id))
+	for option_variant in pool.get("options", []):
+		if option_variant is Dictionary:
+			var corps_id := String((option_variant as Dictionary).get("corps_id", ""))
+			if corps_id != "":
+				result.append(corps_id)
+	return result
+
+
+func _resolve_recruit_action_for_faction(faction_id: String, action: Dictionary, payload: Dictionary) -> Dictionary:
+	var corps_id := String(payload.get("selected_corps_id", ""))
+	if corps_id == "":
+		return {}
+	if _get_runtime_controller(faction_id) == "player":
+		var pending_match := false
+		for option_variant in _get_pending_recruit_options_for_faction(faction_id):
+			if option_variant is Dictionary and String((option_variant as Dictionary).get("corps_id", "")) == corps_id:
+				pending_match = true
+				break
+		if not pending_match:
+			return {}
+	elif not _get_recruit_pool_corps_ids(faction_id).has(corps_id):
+		return {}
+	var resolved_payload := payload.duplicate(true)
+	resolved_payload["action_id"] = RECRUIT_ACTION_ID
+	var resolved := action.duplicate(true)
+	resolved["id"] = RECRUIT_ACTION_ID
+	resolved["payload"] = resolved_payload
+	resolved["ap_cost"] = _get_effective_action_cost(RECRUIT_ACTION_ID)
+	resolved["cost"] = _build_action_cost(resolved, resolved_payload, faction_id)
+	resolved["effects"] = [{
+		"op": "add_corps",
+		"corps_id": corps_id,
+		"resolved_target": corps_id,
+		"resolved_recipient_faction_id": faction_id,
+	}]
+	return resolved
+
+
+func _get_corps_members_from_id(corps_id: String) -> Array:
+	var corps: Dictionary = config.get_corps(corps_id) if config != null else {}
+	var members: Array = corps.get("members", [])
+	return _normalize_corps_members(members)
+
+
+func _get_corps_display_name_from_id(corps_id: String) -> String:
+	var corps: Dictionary = config.get_corps(corps_id) if config != null else {}
+	if not corps.is_empty():
+		return String(corps.get("display_name", corps_id))
+	var unit: Dictionary = config.get_unit(corps_id) if config != null else {}
+	if unit.is_empty():
+		return corps_id
+	return "%s队" % String(unit.get("display_name", corps_id))
+
+
+func _allocate_corps_instance_id() -> String:
+	var corps_instance_id := "corps_%d" % _next_corps_instance_serial
+	_next_corps_instance_serial += 1
+	if not campaign_state.is_empty():
+		campaign_state["next_corps_instance_serial"] = _next_corps_instance_serial
+	return corps_instance_id
+
+
+func _instantiate_corps_runtime(corps_id: String) -> Dictionary:
+	var members := _get_corps_members_from_id(corps_id)
+	if members.is_empty() and config != null and not config.get_unit(corps_id).is_empty():
+		members = [{"unit_id": corps_id, "count": 1}]
+	return {
+		"corps_instance_id": _allocate_corps_instance_id(),
+		"corps_id": corps_id,
+		"members": members,
+	}
+
+
+func _normalize_army_runtime(source: Array) -> Array:
+	var normalized: Array = []
+	for entry_variant in source:
+		if not entry_variant is Dictionary:
+			continue
+		var entry: Dictionary = entry_variant
+		var members := _normalize_corps_members(entry.get("members", []))
+		var corps_id := String(entry.get("corps_id", ""))
+		var corps_instance_id := String(entry.get("corps_instance_id", ""))
+		if members.is_empty() and corps_id != "":
+			members = _get_corps_members_from_id(corps_id)
+		if members.is_empty():
+			var unit_id := String(entry.get("unit_id", ""))
+			var count := int(entry.get("count", 0))
+			if unit_id == "" or count <= 0:
+				continue
+			corps_id = unit_id if corps_id == "" else corps_id
+			members = [{"unit_id": unit_id, "count": count}]
+		if members.is_empty():
+			continue
+		if corps_id == "":
+			corps_id = String((members[0] as Dictionary).get("unit_id", "corps"))
+		if corps_instance_id == "":
+			corps_instance_id = _allocate_corps_instance_id()
+		normalized.append({
+			"corps_instance_id": corps_instance_id,
+			"corps_id": corps_id,
+			"members": members,
+		})
+	return normalized
+
+
+func _normalize_corps_members(source: Array) -> Array:
+	var members: Array = []
+	for member_variant in source:
+		if member_variant is Dictionary:
+			var member: Dictionary = member_variant
+			var unit_id := String(member.get("unit_id", ""))
+			var count := int(member.get("count", 0))
+			if unit_id != "" and count > 0:
+				members.append({"unit_id": unit_id, "count": count})
+	return members
+
+
+func _flatten_corps_army_for_battle(army_source) -> Array:
+	var flattened: Array = []
+	var army: Array = army_source if army_source is Array else []
+	for corps_entry in _normalize_army_runtime(army):
+		var corps_instance_id := String(corps_entry.get("corps_instance_id", ""))
+		for member_variant in corps_entry.get("members", []):
+			if member_variant is Dictionary:
+				var member: Dictionary = member_variant
+				flattened.append({
+					"unit_id": String(member.get("unit_id", "")),
+					"count": 1,
+					"formation_size_override": int(member.get("count", 0)),
+					"source_corps_instance_id": corps_instance_id,
+				})
+	return flattened
+
+
+func _rebuild_corps_army_from_survivors(player_survivors_by_corps: Dictionary, previous_army: Array) -> Array:
+	var rebuilt: Array = []
+	var remaining_survivors: Dictionary = player_survivors_by_corps.duplicate(true)
+	for corps_entry in _normalize_army_runtime(previous_army):
+		var corps_instance_id := String(corps_entry.get("corps_instance_id", ""))
+		var corps_survivors: Dictionary = remaining_survivors.get(corps_instance_id, {})
+		remaining_survivors.erase(corps_instance_id)
+		var members: Array = []
+		for member_variant in corps_entry.get("members", []):
+			if member_variant is Dictionary:
+				var member: Dictionary = member_variant
+				var unit_id := String(member.get("unit_id", ""))
+				var count := int(corps_survivors.get(unit_id, 0))
+				if count > 0:
+					members.append({"unit_id": unit_id, "count": count})
+		if not members.is_empty():
+			rebuilt.append({
+				"corps_instance_id": corps_instance_id,
+				"corps_id": String(corps_entry.get("corps_id", "")),
+				"members": members,
+			})
+	for corps_instance_id_variant in remaining_survivors.keys():
+		var corps_instance_id := String(corps_instance_id_variant)
+		var corps_survivors: Dictionary = remaining_survivors.get(corps_instance_id_variant, {})
+		var members: Array = []
+		for unit_id_variant in corps_survivors.keys():
+			var unit_id := String(unit_id_variant)
+			var count := int(corps_survivors.get(unit_id_variant, 0))
+			if count > 0:
+				members.append({"unit_id": unit_id, "count": count})
+		if not members.is_empty():
+			rebuilt.append({
+				"corps_instance_id": corps_instance_id,
+				"corps_id": String((members[0] as Dictionary).get("unit_id", "")),
+				"members": members,
+			})
+	return rebuilt
+
+
+func _get_total_army_metric(army: Array, metric_key: String) -> int:
+	var total := 0
+	for corps_entry in _normalize_army_runtime(army):
+		total += _get_total_members_metric(corps_entry.get("members", []), metric_key)
+	return total
+
+
+func _get_total_members_metric(members: Array, metric_key: String) -> int:
+	if config == null:
+		return 0
+	var total := 0
+	for member_variant in members:
+		if member_variant is Dictionary:
+			var member: Dictionary = member_variant
+			var unit_config: Dictionary = config.get_unit(String(member.get("unit_id", "")))
+			var campaign: Dictionary = unit_config.get("campaign", {})
+			total += int(campaign.get(metric_key, 0)) * int(member.get("count", 0))
+	return total
 
 
 func _resolve_battle_scene_id(round_battle: Dictionary = {}) -> String:
@@ -1088,12 +1453,16 @@ func _get_upcoming_battle_min_corps_morale() -> int:
 	return config.get_min_corps_morale(_resolve_battle_scene_id(config.get_round_battle(int(campaign_state.get("round", 1)))))
 
 
-func _cleanup_selected_squads() -> void:
+func _cleanup_selected_formations() -> void:
 	var alive: Array = []
-	for squad in _selected_squads:
-		if is_instance_valid(squad):
-			alive.append(squad)
+	for formation in _selected_squads:
+		if is_instance_valid(formation):
+			alive.append(formation)
 	_selected_squads = alive
+
+
+func _cleanup_selected_squads() -> void:
+	_cleanup_selected_formations()
 
 
 func _set_campaign_phase(phase: String) -> void:
@@ -1361,15 +1730,7 @@ func _get_initial_resource_value(faction_id: String, resource_id: String):
 
 
 func _get_total_maintenance_for_faction(faction_id: String) -> int:
-	if config == null:
-		return 0
-	var total := 0
-	for army_entry in _get_faction_state(faction_id).get("army", []):
-		var unit_id := String(army_entry.get("unit_id", ""))
-		var unit_config: Dictionary = config.get_unit(unit_id)
-		var campaign: Dictionary = unit_config.get("campaign", {})
-		total += int(campaign.get("upkeep", 0)) * int(army_entry.get("count", 0))
-	return total
+	return _get_total_army_metric(_get_faction_state(faction_id).get("army", []), "upkeep")
 
 
 func _initialize_management_phase(initialize_to_max: bool = false) -> void:
@@ -1381,6 +1742,7 @@ func _initialize_management_phase(initialize_to_max: bool = false) -> void:
 		"action_order": action_order.duplicate(),
 		"current_actor_index": starting_index,
 		"action_usage_counts": {},
+		"pending_recruits": {},
 	}
 	campaign_state["active_faction_id"] = _get_current_management_actor_id()
 	_advance_management_round_robin()
@@ -1498,7 +1860,12 @@ func _with_runtime_action_cost(action: Dictionary) -> Dictionary:
 	var entry := action.duplicate(true)
 	var action_id := String(entry.get("id", ""))
 	entry["ap_cost"] = _get_effective_action_cost(action_id)
-	entry["cost"] = _build_action_cost(entry, {})
+	var preview_payload := {}
+	if action_id == RECRUIT_ACTION_ID:
+		var pending_options := _get_pending_recruit_options_for_faction(_get_player_faction_id())
+		if not pending_options.is_empty():
+			preview_payload["selected_corps_id"] = String((pending_options[0] as Dictionary).get("corps_id", ""))
+	entry["cost"] = _build_action_cost(entry, preview_payload)
 	return entry
 
 

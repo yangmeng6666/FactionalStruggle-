@@ -12,6 +12,7 @@ const FALLBACK_BATTLE_ROOT_SCENE: PackedScene = preload("res://scenes/battle_roo
 @onready var _ui_root: CanvasLayer = get_node_or_null("../UIRoot") as CanvasLayer
 @onready var _selection_overlay: Control = get_node_or_null("../UIRoot/SelectionOverlay") as Control
 @onready var _day_hud: Control = get_node_or_null("../UIRoot/DayHUD") as Control
+@onready var _battle_unit_bar: Control = get_node_or_null("../UIRoot/BattleUnitBar") as Control
 
 var _main_menu: Control = null
 var _faction_selection_page: Control = null
@@ -29,6 +30,7 @@ func _ready() -> void:
 
 func _show_main_menu() -> void:
 	_set_game_ui_visible(false)
+	_reset_battle_ui_state()
 	_free_runtime_nodes()
 
 	_main_menu = MAIN_MENU_SCENE.instantiate()
@@ -39,6 +41,7 @@ func _show_main_menu() -> void:
 
 func _show_faction_selection_page() -> void:
 	_set_game_ui_visible(false)
+	_reset_battle_ui_state()
 	_free_runtime_nodes()
 
 	_faction_selection_page = FACTION_SELECTION_SCENE.instantiate()
@@ -50,6 +53,7 @@ func _show_faction_selection_page() -> void:
 
 func _show_troop_selection() -> void:
 	_set_game_ui_visible(false)
+	_reset_battle_ui_state()
 
 	if _battle_root != null:
 		_battle_root.queue_free()
@@ -64,6 +68,7 @@ func _show_troop_selection() -> void:
 
 func _show_gameplay_page() -> void:
 	_set_game_ui_visible(false)
+	_reset_battle_ui_state()
 
 	if _battle_root != null:
 		_battle_root.queue_free()
@@ -106,11 +111,6 @@ func _on_faction_selected(faction_id: String) -> void:
 
 func _on_troop_selected(troop_type: String) -> void:
 	_current_troop = troop_type
-	if not _current_battle_setup.is_empty():
-		for entry in _current_battle_setup.get("player_army", []):
-			if String(entry.get("unit_id", "")) == troop_type:
-				_current_battle_setup["player_army"] = [entry.duplicate(true)]
-				break
 	_start_battle()
 
 
@@ -152,6 +152,8 @@ func _start_battle() -> void:
 	elif _battle_root.has_method("spawn_player_units"):
 		_battle_root.spawn_player_units(_current_troop)
 
+	if _battle_unit_bar != null and _battle_unit_bar.has_method("bind_battle"):
+		_battle_unit_bar.bind_battle(_battle_root, _game_session)
 	_set_game_ui_visible(true)
 	battle_started.emit(_current_troop)
 
@@ -160,6 +162,7 @@ func _on_battle_finished(result: Dictionary) -> void:
 	if _game_session != null and _game_session.has_method("resolve_battle_round"):
 		_game_session.resolve_battle_round(result)
 	_current_battle_setup = {}
+	_reset_battle_ui_state()
 	if String(result.get("outcome", "")) == "defeat" or bool(result.get("defeat", false)) or bool(result.get("lost", false)):
 		_show_main_menu()
 		return
@@ -194,6 +197,16 @@ func _set_game_ui_visible(is_visible: bool) -> void:
 
 	if _day_hud != null:
 		_day_hud.visible = is_visible
+
+	if _battle_unit_bar != null:
+		_battle_unit_bar.visible = is_visible
+
+
+func _reset_battle_ui_state() -> void:
+	if _game_session != null and _game_session.has_method("clear_selection"):
+		_game_session.clear_selection()
+	if _battle_unit_bar != null and _battle_unit_bar.has_method("clear_battle"):
+		_battle_unit_bar.clear_battle()
 
 
 func _free_runtime_nodes() -> void:

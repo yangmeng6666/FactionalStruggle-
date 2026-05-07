@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "behavior_trees": {
 	"default_management_ai": {
 	  "rules": [
@@ -19,11 +19,10 @@
 		{
 		  "condition": {
 			"type": "army_count_below",
-			"unit_id": "infantry",
-			"value": 3
+			"value": 4
 		  },
 		  "candidate_action_ids": [
-            "recruit_infantry"
+            "recruit_corps"
 		  ]
 		},
 		{

@@ -6,6 +6,7 @@ const CONFIG_FILES := {
 	"resources": "resources.json",
 	"factions": "factions.json",
 	"units": "units.json",
+	"corps": "corps.json",
 	"actions": "actions.json",
 	"ai_behavior_trees": "ai_behavior_trees.json",
 	"battle_setups": "battle_setups.json",
@@ -121,6 +122,10 @@ func get_faction_initial_owned_assets(faction_id: String) -> int:
 	return int(get_faction(faction_id).get("owned_assets", 0))
 
 
+func get_faction_recruit_pool_id(faction_id: String) -> String:
+	return String(get_faction(faction_id).get("recruit_pool_id", ""))
+
+
 func get_management_shared_city_resources() -> Dictionary:
 	return _data.get("gameplay_rules", {}).get("management", {}).get("shared_city_resources", {}).duplicate(true)
 
@@ -131,6 +136,22 @@ func get_unit(unit_id: String) -> Dictionary:
 
 func get_unit_ids() -> Array:
 	return _data.get("units", {}).get("units", {}).keys()
+
+
+func get_corps(corps_id: String) -> Dictionary:
+	return _get_nested("corps", "corps", corps_id)
+
+
+func get_corps_ids() -> Array:
+	return _data.get("corps", {}).get("corps", {}).keys()
+
+
+func get_recruit_pool(pool_id: String) -> Dictionary:
+	return _get_nested("corps", "recruit_pools", pool_id)
+
+
+func get_recruit_pool_ids() -> Array:
+	return _data.get("corps", {}).get("recruit_pools", {}).keys()
 
 
 func get_action(action_id: String) -> Dictionary:
@@ -370,6 +391,8 @@ func _validate() -> void:
 	_require_section("resources", "resources")
 	_require_section("factions", "factions")
 	_require_section("units", "units")
+	_require_section("corps", "corps")
+	_require_section("corps", "recruit_pools")
 	_require_section("actions", "actions")
 	_require_section("ai_behavior_trees", "behavior_trees")
 	_require_section("battle_setups", "setups")
@@ -415,15 +438,22 @@ func _validate() -> void:
 		elif not ["city", "faction", "special", "derived"].has(scope):
 			_errors.append("Resource %s has invalid scope %s" % [resource_id, scope])
 
+	for corps_id in get_corps_ids():
+		_validate_corps_definition(String(corps_id), get_corps(String(corps_id)))
+
+	for pool_id in get_recruit_pool_ids():
+		_validate_recruit_pool(String(pool_id), get_recruit_pool(String(pool_id)))
+
 	for faction_id in _data.get("factions", {}).get("factions", {}).keys():
 		var faction: Dictionary = get_faction(String(faction_id))
 		for action_id in faction.get("allowed_action_ids", []):
 			if get_action(String(action_id)).is_empty():
 				_errors.append("Faction %s allows unknown action %s" % [faction_id, action_id])
 		for army_entry in faction.get("initial_army", []):
-			var unit_id := String(army_entry.get("unit_id", ""))
-			if unit_id != "" and get_unit(unit_id).is_empty():
-				_errors.append("Faction %s references unknown unit %s" % [faction_id, unit_id])
+			_validate_army_entry("Faction %s initial_army" % faction_id, army_entry)
+		var recruit_pool_id := get_faction_recruit_pool_id(String(faction_id))
+		if recruit_pool_id == "" or get_recruit_pool(recruit_pool_id).is_empty():
+			_errors.append("Faction %s references unknown recruit pool %s" % [faction_id, recruit_pool_id])
 		var tree_id := String(faction.get("behavior_tree_id", ""))
 		if tree_id == "" or get_behavior_tree(tree_id).is_empty():
 			_errors.append("Faction %s references unknown behavior tree %s" % [faction_id, tree_id])
@@ -474,9 +504,7 @@ func _validate() -> void:
 		if battle_scene_id != "" and get_battle_scene(battle_scene_id).is_empty():
 			_errors.append("Round battle %s references unknown battle scene %s" % [round_key, battle_scene_id])
 		for army_entry in battle.get("enemy_army", []):
-			var unit_id := String(army_entry.get("unit_id", ""))
-			if unit_id != "" and get_unit(unit_id).is_empty():
-				_errors.append("Round battle %s references unknown unit %s" % [round_key, unit_id])
+			_validate_army_entry("Round battle %s enemy_army" % round_key, army_entry)
 
 	var round_resource_rules: Dictionary = get_round_resource_rules()
 	if get_round_resource_rule("action_points").is_empty():
@@ -722,6 +750,60 @@ func _validate_resource_reference(context: String, resource_id: String, allow_de
 		return
 	if not allow_derived and get_resource_scope(resource_id) == "derived":
 		_errors.append("%s cannot write derived resource %s" % [context, resource_id])
+
+
+func _validate_corps_definition(corps_id: String, corps: Dictionary) -> void:
+	if corps.is_empty():
+		_errors.append("Corps %s is empty" % corps_id)
+		return
+	var members = corps.get("members", [])
+	if not members is Array or members.is_empty():
+		_errors.append("Corps %s must define at least one member" % corps_id)
+		return
+	for member_variant in members:
+		if not member_variant is Dictionary:
+			_errors.append("Corps %s contains invalid member" % corps_id)
+			continue
+		var member: Dictionary = member_variant
+		var unit_id := String(member.get("unit_id", ""))
+		if unit_id == "" or get_unit(unit_id).is_empty():
+			_errors.append("Corps %s references unknown unit %s" % [corps_id, unit_id])
+		if int(member.get("count", 0)) <= 0:
+			_errors.append("Corps %s member %s must have positive count" % [corps_id, unit_id])
+
+
+func _validate_recruit_pool(pool_id: String, pool: Dictionary) -> void:
+	var options = pool.get("options", [])
+	if not options is Array or options.is_empty():
+		_errors.append("Recruit pool %s must define options" % pool_id)
+		return
+	for option_variant in options:
+		if not option_variant is Dictionary:
+			_errors.append("Recruit pool %s contains invalid option" % pool_id)
+			continue
+		var option: Dictionary = option_variant
+		var corps_id := String(option.get("corps_id", ""))
+		if corps_id == "" or get_corps(corps_id).is_empty():
+			_errors.append("Recruit pool %s references unknown corps %s" % [pool_id, corps_id])
+		if int(option.get("weight", 0)) <= 0:
+			_errors.append("Recruit pool %s option %s must have positive weight" % [pool_id, corps_id])
+
+
+func _validate_army_entry(context: String, army_entry) -> void:
+	if not army_entry is Dictionary:
+		_errors.append("%s contains invalid army entry" % context)
+		return
+	var entry: Dictionary = army_entry
+	var corps_id := String(entry.get("corps_id", ""))
+	if corps_id != "":
+		if get_corps(corps_id).is_empty():
+			_errors.append("%s references unknown corps %s" % [context, corps_id])
+		return
+	var unit_id := String(entry.get("unit_id", ""))
+	if unit_id == "" or get_unit(unit_id).is_empty():
+		_errors.append("%s references unknown unit %s" % [context, unit_id])
+	if int(entry.get("count", 0)) <= 0:
+		_errors.append("%s unit %s must have positive count" % [context, unit_id])
 
 
 func _filter_resource_order_by_scope(scope: String) -> Array:

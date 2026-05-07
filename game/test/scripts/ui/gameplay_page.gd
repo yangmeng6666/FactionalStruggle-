@@ -421,8 +421,38 @@ func _render_action_options() -> void:
 			_render()
 		)
 		_recruit_list.add_child(button)
+	if String(selected_action.get("id", "")) == "recruit_corps":
+		_render_pending_recruit_options(_snapshot.get("pending_recruit_options", []), interactions_locked or not is_player_turn)
 	_render_target_options(selected_action)
 	_update_execute_action_button(selected_action)
+
+func _render_pending_recruit_options(options: Array, disabled: bool) -> void:
+	for option_variant in options:
+		if not option_variant is Dictionary:
+			continue
+		var option: Dictionary = option_variant
+		var button := Button.new()
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.disabled = disabled
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var member_parts: Array[String] = []
+		for member_variant in option.get("members", []):
+			if not member_variant is Dictionary:
+				continue
+			var member: Dictionary = member_variant
+			var unit_id := String(member.get("unit_id", ""))
+			var unit_config: Dictionary = config.get_unit(unit_id)
+			member_parts.append("%s x%d" % [String(unit_config.get("display_name", unit_id)), int(member.get("count", 0))])
+		button.text = "%s\n%s\n士气 %d  维护 %d" % [
+			String(option.get("display_name", option.get("corps_id", "兵团"))),
+			" / ".join(member_parts),
+			int(option.get("morale", 0)),
+			int(option.get("maintenance", 0)),
+		]
+		button.pressed.connect(func() -> void:
+			action_requested.emit("recruit_corps", {"selected_corps_id": String(option.get("corps_id", ""))})
+		)
+		_recruit_list.add_child(button)
 
 
 func _render_target_options(action: Dictionary) -> void:
@@ -806,16 +836,35 @@ func _render_projected_snapshot(parent: GridContainer, projected: Dictionary) ->
 
 
 func _render_army() -> void:
-	for entry in _snapshot.get("army", []):
-		var unit_id := String(entry.get("unit_id", ""))
-		var unit_config: Dictionary = config.get_unit(unit_id)
-		var campaign: Dictionary = unit_config.get("campaign", {})
+	for entry_variant in _snapshot.get("army", []):
+		if not entry_variant is Dictionary:
+			continue
+		var entry: Dictionary = entry_variant
+		var corps_id := String(entry.get("corps_id", ""))
+		var corps_config: Dictionary = config.get_corps(corps_id) if config != null and config.has_method("get_corps") else {}
+		var corps_name := String(corps_config.get("display_name", entry.get("display_name", corps_id if corps_id != "" else "兵团")))
+		var members: Array = entry.get("members", [])
+		var member_parts: Array[String] = []
+		var total_morale := 0
+		var total_upkeep := 0
+		for member_variant in members:
+			if not member_variant is Dictionary:
+				continue
+			var member: Dictionary = member_variant
+			var unit_id := String(member.get("unit_id", ""))
+			var count := int(member.get("count", 0))
+			var unit_config: Dictionary = config.get_unit(unit_id)
+			var campaign: Dictionary = unit_config.get("campaign", {})
+			member_parts.append("%s x%d" % [String(unit_config.get("display_name", unit_id)), count])
+			total_morale += int(campaign.get("morale", 0)) * count
+			total_upkeep += int(campaign.get("upkeep", 0)) * count
 		var label := Label.new()
-		label.text = "%s x%d  士气:%d  维护:%d" % [
-			unit_config.get("display_name", unit_id),
-			int(entry.get("count", 0)),
-			int(campaign.get("morale", 0)) * int(entry.get("count", 0)),
-			int(campaign.get("upkeep", 0)) * int(entry.get("count", 0)),
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.text = "%s\n%s\n士气:%d  维护:%d" % [
+			corps_name,
+			" / ".join(member_parts),
+			total_morale,
+			total_upkeep,
 		]
 		_army_list.add_child(label)
 
@@ -974,6 +1023,11 @@ func _describe_resolved_effect(effect: Dictionary) -> String:
 			var unit_id := String(effect.get("unit_id", ""))
 			var unit_config: Dictionary = config.get_unit(unit_id)
 			return "%s：%s +%d" % [recipient_name, unit_config.get("display_name", unit_id), int(effect.get("count", 1))]
+		"add_corps":
+			var corps_id := String(effect.get("corps_id", ""))
+			var corps_config: Dictionary = config.get_corps(corps_id) if config != null and config.has_method("get_corps") else {}
+			var corps_name := String(corps_config.get("display_name", corps_id))
+			return "%s：%s +1" % [recipient_name, corps_name]
 	return "%s：%s" % [recipient_name, target_name]
 
 
@@ -993,7 +1047,11 @@ func _get_resolved_effect_target_name(effect: Dictionary) -> String:
 func _can_select_action(action: Dictionary) -> bool:
 	if not bool(_snapshot.get("is_player_turn", false)):
 		return false
-	var projection := _get_projection_for_action(String(action.get("id", "")), _build_action_payload(false))
+	var action_id := String(action.get("id", ""))
+	var payload := _build_action_payload(false)
+	if action_id == "recruit_corps" and not payload.has("selected_corps_id"):
+		return _can_apply_action(action_id, payload)
+	var projection := _get_projection_for_action(action_id, payload)
 	var resolved_action: Dictionary = projection.get("resolved_action", {})
 	if resolved_action.is_empty():
 		return false

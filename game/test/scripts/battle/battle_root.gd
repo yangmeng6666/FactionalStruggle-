@@ -1,6 +1,8 @@
 extends Node2D
 
 signal battle_finished(result: Dictionary)
+signal player_formations_spawned(formations: Array)
+signal player_squads_spawned(squads: Array)
 
 @onready var player_units_root: Node = $Units/PlayerUnits
 @onready var enemy_units_root: Node = $Units/EnemyUnits
@@ -26,12 +28,12 @@ var _battle_is_over: bool = false
 
 func _ready() -> void:
 	add_to_group("battle_root")
-	for squad in get_player_squads():
-		if squad.has_method("set_team"):
-			squad.set_team("player")
-	for squad in get_enemy_squads():
-		if squad.has_method("set_team"):
-			squad.set_team("enemy")
+	for formation in get_player_formations():
+		if formation.has_method("set_team"):
+			formation.set_team("player")
+	for formation in get_enemy_formations():
+		if formation.has_method("set_team"):
+			formation.set_team("enemy")
 
 func _physics_process(delta: float) -> void:
 	if _battle_is_over:
@@ -50,7 +52,7 @@ func _physics_process(delta: float) -> void:
 	_update_combat_targets(player_squads, enemy_squads)
 	_update_combat_targets(enemy_squads, player_squads)
 
-func spawn_player_units(troop_type: String) -> void:
+func spawn_player_units(_troop_type: String) -> void:
 	var game_session = get_tree().get_first_node_in_group("game_session")
 	var active_config = game_session.get("config") if game_session != null else null
 	if active_config == null:
@@ -65,13 +67,6 @@ func spawn_player_units(troop_type: String) -> void:
 		battle_setup["battle_scene_id"] = battle_scene_id
 	if battle_setup.is_empty():
 		return
-	var selected_entry: Dictionary = {}
-	for entry in battle_setup.get("player_army", battle_setup.get("default_player_army", [])):
-		if String(entry.get("unit_id", "")) == troop_type:
-			selected_entry = entry.duplicate(true)
-			break
-	if not selected_entry.is_empty():
-		battle_setup["player_army"] = [selected_entry]
 	spawn_from_battle_setup(battle_setup, active_config)
 
 
@@ -86,6 +81,9 @@ func spawn_from_battle_setup(battle_setup: Dictionary, config) -> void:
 		return
 	_spawn_army(battle_setup.get("player_army", battle_setup.get("default_player_army", [])), player_units_root, "player", battle_setup, config)
 	_spawn_army(battle_setup.get("enemy_army", battle_setup.get("default_enemy_army", [])), enemy_units_root, "enemy", battle_setup, config)
+	var player_formations := get_player_formations()
+	player_formations_spawned.emit(player_formations)
+	player_squads_spawned.emit(player_formations)
 
 
 func _spawn_army(army: Array, parent: Node, team_name: String, battle_setup: Dictionary, config) -> void:
@@ -97,8 +95,16 @@ func _spawn_army(army: Array, parent: Node, team_name: String, battle_setup: Dic
 		var unit_config: Dictionary = config.get_unit(unit_id)
 		if unit_config.is_empty():
 			continue
+		var source_corps_instance_id := String(entry.get("source_corps_instance_id", ""))
+		var formation_size_override := int(entry.get("formation_size_override", 0))
 		for _i in range(maxi(0, int(entry.get("count", 0)))):
-			members.append(_build_spawn_member(unit_id, unit_config, members.size()))
+			var runtime_unit_config := unit_config.duplicate(true)
+			var battle: Dictionary = runtime_unit_config.get("battle", {}).duplicate(true)
+			if formation_size_override > 0:
+				battle["formation_size"] = formation_size_override
+			runtime_unit_config["battle"] = battle
+			runtime_unit_config["source_corps_instance_id"] = source_corps_instance_id
+			members.append(_build_spawn_member(unit_id, runtime_unit_config, members.size()))
 
 	for placement in _build_spawn_formation(battle_setup, team_name, members):
 		var member: Dictionary = placement.get("member", {})
@@ -107,11 +113,12 @@ func _spawn_army(army: Array, parent: Node, team_name: String, battle_setup: Dic
 			String(member.get("unit_id", "")),
 			parent,
 			team_name,
-			placement.get("target", Vector2.ZERO)
+			placement.get("target", Vector2.ZERO),
+			String(member.get("source_corps_instance_id", ""))
 		)
 
 
-func _spawn_configured_squad(unit_config: Dictionary, unit_id: String, parent: Node, team_name: String, position: Vector2) -> void:
+func _spawn_configured_squad(unit_config: Dictionary, unit_id: String, parent: Node, team_name: String, position: Vector2, source_corps_instance_id: String = "") -> void:
 	var battle: Dictionary = unit_config.get("battle", {})
 	var scene_path := String(battle.get("scene", ""))
 	var packed_scene := SQUAD_SCENE
@@ -122,6 +129,8 @@ func _spawn_configured_squad(unit_config: Dictionary, unit_id: String, parent: N
 
 	var squad: CharacterBody2D = packed_scene.instantiate()
 	squad.set_meta("unit_id", unit_id)
+	if source_corps_instance_id != "":
+		squad.set_meta("source_corps_instance_id", source_corps_instance_id)
 	squad.global_position = position
 	parent.add_child(squad)
 	if squad.has_method("apply_unit_config"):
@@ -139,6 +148,7 @@ func _build_spawn_member(unit_id: String, unit_config: Dictionary, stable_order:
 	return {
 		"unit_id": unit_id,
 		"unit_config": unit_config,
+		"source_corps_instance_id": String(unit_config.get("source_corps_instance_id", "")),
 		"selection_radius": float(battle.get("selection_radius", MIN_FORMATION_SPACING * 0.5)),
 		"size": float(battle.get("size", 1.0)),
 		"tactic": String(battle.get("tactic", "frontline")),
@@ -330,60 +340,73 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("command_move"):
 		issue_move_command(get_global_mouse_position())
 
-func get_player_squads() -> Array:
-	var squads: Array = []
+func get_player_formations() -> Array:
+	var formations: Array = []
 	for child in player_units_root.get_children():
 		if is_instance_valid(child):
-			squads.append(child)
-	return squads
+			formations.append(child)
+	return formations
 
-func get_enemy_squads() -> Array:
-	var squads: Array = []
+func get_enemy_formations() -> Array:
+	var formations: Array = []
 	for child in enemy_units_root.get_children():
 		if is_instance_valid(child):
-			squads.append(child)
-	return squads
+			formations.append(child)
+	return formations
 
-func get_player_squad_at_world_position(world_position: Vector2):
-	var best_squad = null
+func get_player_squads() -> Array:
+	return get_player_formations()
+
+func get_enemy_squads() -> Array:
+	return get_enemy_formations()
+
+func get_player_formation_at_world_position(world_position: Vector2):
+	var best_formation = null
 	var best_distance: float = INF
 
-	for squad in get_player_squads():
-		if not squad.has_method("contains_world_point"):
+	for formation in get_player_formations():
+		if not formation.has_method("contains_world_point"):
 			continue
-		if not squad.contains_world_point(world_position):
+		if not formation.contains_world_point(world_position):
 			continue
 
-		var distance: float = squad.global_position.distance_to(world_position)
+		var distance: float = formation.global_position.distance_to(world_position)
 		if distance < best_distance:
 			best_distance = distance
-			best_squad = squad
+			best_formation = formation
 
-	return best_squad
+	return best_formation
+
+func get_player_squad_at_world_position(world_position: Vector2):
+	return get_player_formation_at_world_position(world_position)
 
 func issue_move_command(target: Vector2) -> void:
 	var game_session = get_tree().get_first_node_in_group("game_session")
-	if game_session == null or not game_session.has_method("get_selected_squads"):
+	if game_session == null:
 		return
 
-	var selected_squads: Array = game_session.get_selected_squads()
-	if selected_squads.is_empty():
+	var selected_formations: Array = []
+	if game_session.has_method("get_selected_formations"):
+		selected_formations = game_session.get_selected_formations()
+	elif game_session.has_method("get_selected_squads"):
+		selected_formations = game_session.get_selected_squads()
+	if selected_formations.is_empty():
 		return
 
-	var move_squads: Array = []
+	var move_formations: Array = []
 	var formation_center := Vector2.ZERO
-	for squad in selected_squads:
-		if not is_instance_valid(squad):
+	for formation in selected_formations:
+		if not is_instance_valid(formation):
 			continue
-		if squad.get("team") != "player":
+		if formation.get("team") != "player":
 			continue
-		move_squads.append(squad)
-		formation_center += squad.global_position
+		move_formations.append(formation)
+		formation_center += formation.global_position
 
-	if move_squads.is_empty():
+	if move_formations.is_empty():
 		return
 
-	formation_center /= float(move_squads.size())
+	formation_center /= float(move_formations.size())
 	var move_direction := target - formation_center
 	if move_direction.length_squared() <= 0.0001:
 		move_direction = Vector2.RIGHT
@@ -391,22 +414,22 @@ func issue_move_command(target: Vector2) -> void:
 		move_direction = move_direction.normalized()
 	var lateral_axis := Vector2(-move_direction.y, move_direction.x)
 
-	move_squads.sort_custom(func(a, b): return a.global_position.dot(lateral_axis) < b.global_position.dot(lateral_axis))
+	move_formations.sort_custom(func(a, b): return a.global_position.dot(lateral_axis) < b.global_position.dot(lateral_axis))
 
 	var move_members: Array = []
-	for index in range(move_squads.size()):
-		move_members.append(_build_move_member(move_squads[index], index))
+	for index in range(move_formations.size()):
+		move_members.append(_build_move_member(move_formations[index], index))
 
 	var navigation_map := RID()
-	var navigation_agent := move_squads[0].get_node_or_null("NavigationAgent2D") as NavigationAgent2D
+	var navigation_agent := move_formations[0].get_node_or_null("NavigationAgent2D") as NavigationAgent2D
 	if navigation_agent != null:
 		navigation_map = navigation_agent.get_navigation_map()
 
 	var frontage := maxi(1, int(ceil(sqrt(float(move_members.size())))))
 	for placement in _build_formation_targets(target, move_direction, move_members, frontage, navigation_map, [], {}, false):
-		var squad = placement.get("member", {}).get("squad", null)
-		if is_instance_valid(squad):
-			squad.set_move_target(placement.get("target", target))
+		var formation = placement.get("member", {}).get("squad", null)
+		if is_instance_valid(formation):
+			formation.set_move_target(placement.get("target", target))
 
 	_spawn_move_target_marker(target)
 
@@ -416,8 +439,6 @@ func _update_combat_targets(allies: Array, enemies: Array) -> void:
 
 	for squad in allies:
 		if not is_instance_valid(squad):
-			continue
-		if not squad.has_method("can_auto_engage") or not squad.can_auto_engage():
 			continue
 		if not squad.has_method("get_combat_target"):
 			continue
@@ -437,12 +458,11 @@ func _update_combat_targets(allies: Array, enemies: Array) -> void:
 	for squad in allies:
 		if not is_instance_valid(squad):
 			continue
-		if not squad.has_method("can_auto_engage") or not squad.can_auto_engage():
-			continue
 		if squad.has_method("get_combat_target") and squad.get_combat_target() != null:
 			continue
 
-		var combat_target = _get_nearest_enemy(squad, enemies, claimed_enemy_ids)
+		var can_auto_engage: bool = squad.has_method("can_auto_engage") and bool(squad.can_auto_engage())
+		var combat_target = _get_nearest_enemy(squad, enemies, claimed_enemy_ids) if can_auto_engage else _get_forced_engage_enemy(squad, enemies, claimed_enemy_ids)
 		if combat_target != null:
 			claimed_enemy_ids[combat_target.get_instance_id()] = true
 		squad.set_combat_target(combat_target)
@@ -468,6 +488,29 @@ func _get_nearest_enemy(squad, enemies: Array, claimed_enemy_ids: Dictionary):
 		var distance: float = squad.global_position.distance_squared_to(enemy.global_position)
 		if distance > max_acquire_distance_squared:
 			continue
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest_enemy = enemy
+	return nearest_enemy
+
+func _get_forced_engage_enemy(squad, enemies: Array, claimed_enemy_ids: Dictionary):
+	if not squad.has_method("can_force_engage_target"):
+		return null
+	var nearest_enemy = null
+	var nearest_distance := INF
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		if enemy == squad:
+			continue
+		if enemy.has_method("is_dead") and enemy.is_dead():
+			continue
+		var enemy_id: int = enemy.get_instance_id()
+		if claimed_enemy_ids.has(enemy_id):
+			continue
+		if not squad.can_force_engage_target(enemy):
+			continue
+		var distance: float = squad.global_position.distance_squared_to(enemy.global_position)
 		if distance < nearest_distance:
 			nearest_distance = distance
 			nearest_enemy = enemy
@@ -540,6 +583,8 @@ func _finish_battle(player_squads: Array, enemy_squads: Array) -> void:
 		"outcome": outcome,
 		"player_survivors": _build_survivor_counts(player_squads),
 		"enemy_survivors": _build_survivor_counts(enemy_squads),
+		"player_survivors_by_corps": _build_survivor_counts_by_corps(player_squads),
+		"enemy_survivors_by_corps": _build_survivor_counts_by_corps(enemy_squads),
 	})
 
 
@@ -553,5 +598,33 @@ func _build_survivor_counts(squads: Array) -> Dictionary:
 			unit_id = String(squad.get("unit_id", ""))
 		if unit_id == "":
 			continue
-		survivors[unit_id] = int(survivors.get(unit_id, 0)) + 1
+		var survivor_count := 1
+		if squad.has_method("get_current_formation_members"):
+			survivor_count = int(squad.get_current_formation_members())
+		if survivor_count <= 0:
+			continue
+		survivors[unit_id] = int(survivors.get(unit_id, 0)) + survivor_count
+	return survivors
+
+func _build_survivor_counts_by_corps(squads: Array) -> Dictionary:
+	var survivors: Dictionary = {}
+	for squad in squads:
+		if not is_instance_valid(squad):
+			continue
+		var corps_instance_id := String(squad.get_meta("source_corps_instance_id", ""))
+		if corps_instance_id == "":
+			continue
+		var unit_id := String(squad.get_meta("unit_id", ""))
+		if unit_id == "":
+			unit_id = String(squad.get("unit_id", ""))
+		if unit_id == "":
+			continue
+		var survivor_count := 1
+		if squad.has_method("get_current_formation_members"):
+			survivor_count = int(squad.get_current_formation_members())
+		if survivor_count <= 0:
+			continue
+		var corps_survivors: Dictionary = survivors.get(corps_instance_id, {})
+		corps_survivors[unit_id] = int(corps_survivors.get(unit_id, 0)) + survivor_count
+		survivors[corps_instance_id] = corps_survivors
 	return survivors
